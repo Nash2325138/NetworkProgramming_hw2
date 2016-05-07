@@ -14,5 +14,7 @@ int main()
   time (&rawtime);
   timeinfo = localtime (&rawtime);
   printf ("Current local time and date: %s", asctime(timeinfo));
+
+  fclose(ascii);
 	return 0;
 }

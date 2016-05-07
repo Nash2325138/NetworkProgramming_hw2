@@ -21,8 +21,9 @@
 typedef enum
 {
 	INIT,
-	LOGIN,
-	MENU
+	LOGIN_ACCOUNT,
+	LOGIN_PASSWORD,
+	ONLINE
 }State;
 
 State state;
@@ -52,15 +53,14 @@ int main (int argc, char **argv)
 	if( (inet_pton(AF_INET, argv[1], &servaddr.sin_addr)) <= 0 ) perror("inet_pton error");
 	
 	if( (servfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) perror("socket error");
-	
-
-	strcpy(sendBuffer, "NULL");
-	sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 
 	state = INIT;
 	fd_set rset, allset;
 	FD_ZERO(&allset);
 	FD_SET(servfd, &allset);
+
+	strcpy(sendBuffer, "NULL");
+	sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 	for( ; ; )
 	{
 		rset = allset;
@@ -74,10 +74,11 @@ int main (int argc, char **argv)
 			if(fputs(recvBuffer, stdout) == EOF) perror("fputs error"); 
 			if(state == INIT)
 			{
-				fputs(recvBuffer, stdout);
-				state = LOGIN;
+				state = LOGIN_ACCOUNT;
+				//if(fgets(sendBuffer, MAXLINE, stdin) == NULL) perror("fgets from stdin error");
+				//sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 			}
-			else if(state == LOGIN)
+			else if(state == LOGIN_ACCOUNT)
 			{
 				char successMessage[MAXLINE];
 				sscanf(recvBuffer, "%s", successMessage);
@@ -85,11 +86,11 @@ int main (int argc, char **argv)
 				else if(strcmp(successMessage, "fail") == 0)
 				{
 					sscanf(recvBuffer, "success %s", account);
-					state = MENU;
+					state = ONLINE;
 				}
 				else fprintf(stderr, "successMessage read something else\n");
 			}
-			else if(state == MENU)
+			else if(state == ONLINE)
 			{
 
 			}
@@ -113,7 +114,7 @@ void sendCommand(int udpfd, const struct sockaddr *servaddr_ptr, char *command)
 	tv.tv_usec = 2000;
 	while(true)
 	{
-		sendto(udpfd, command, MAXLINE, 0, servaddr_ptr, servlen);
+		sendto(udpfd, command, strlen(command), 0, servaddr_ptr, servlen);
 		rset = allset;
 		int maxfd = udpfd;
 		select(maxfd+1, &rset, NULL, NULL, &tv);
@@ -142,7 +143,6 @@ void sendAck(int udpfd, const struct sockaddr *servaddr_ptr)
 {
 	socklen_t servlen = sizeof (struct sockaddr);
 	char ack[MAXLINE];
-	strcpy(ack, account);
-	strcat(ack, " ack");
+	strcpy(ack, "ack");
 	sendto(udpfd, ack, sizeof ack, 0, servaddr_ptr, servlen);
 }
