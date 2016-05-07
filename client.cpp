@@ -21,8 +21,10 @@
 typedef enum
 {
 	INIT,
-	LOGIN_ACCOUNT,
-	LOGIN_PASSWORD,
+	LOGIN,
+	REGISTER_ACCOUNT,
+	REGISTER_PASSWORD,
+	REGISTER_NICKNAME,
 	ONLINE
 }State;
 
@@ -39,6 +41,7 @@ int main (int argc, char **argv)
 	int servfd;
 	char recvBuffer[MAXLINE];
 	char sendBuffer[MAXLINE];
+	char temp[MAXLINE];
 	struct sockaddr_in servaddr;
 	if(argc!=3){
 		fprintf(stderr, "Usage: ./<executable file> <server IP> <server port>\n");
@@ -71,33 +74,54 @@ int main (int argc, char **argv)
 			int n = recvfrom(servfd, recvBuffer, MAXLINE, 0, NULL, NULL);
 			recvBuffer[n] = '\0';
 			sendAck(servfd, (struct sockaddr *)&servaddr);
-			if(fputs(recvBuffer, stdout) == EOF) perror("fputs error"); 
 			if(state == INIT)
 			{
-				state = LOGIN_ACCOUNT;
-				//if(fgets(sendBuffer, MAXLINE, stdin) == NULL) perror("fgets from stdin error");
-				//sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+				if(fputs(recvBuffer, stdout) == EOF) perror("fputs error"); 
+				state = LOGIN;
+				strcpy(recvBuffer, "LOGIN ");
+				if(fgets(temp, MAXLINE, stdin) == NULL) perror("fgets from stdin error");
+				strcat(recvBuffer, temp);
+				sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 			}
-			else if(state == LOGIN_ACCOUNT)
+			else if(state == LOGIN)
 			{
-				char successMessage[MAXLINE];
-				sscanf(recvBuffer, "%s", successMessage);
-				if(strcmp(successMessage, "success") == 0) {}
-				else if(strcmp(successMessage, "fail") == 0)
-				{
-					sscanf(recvBuffer, "success %s", account);
-					state = ONLINE;
+				if(fputs(recvBuffer, stdout) == EOF) perror("fputs error");
+				if(strncmp(recvBuffer, "Fail", 4) == 0) {
+					state = LOGIN;
+					strcpy(recvBuffer, "LOGIN ");
+					if(fgets(temp, MAXLINE, stdin) == NULL) perror("fgets from stdin error");
+					strcat(recvBuffer, temp);
 				}
-				else fprintf(stderr, "successMessage read something else\n");
+				else if(strncmp(recvBuffer, "Create", 6) == 0) {
+					state = REGISTER_ACCOUNT;
+					strcpy(recvBuffer, "REGISTER_ACCOUNT ");
+					if(fgets(temp, MAXLINE, stdin) == NULL) perror("fgets from stdin error");
+					strcat(recvBuffer, temp);
+				}
+				else {	// seccessfully log in
+					state = ONLINE;
+					strcpy(recvBuffer, "ONLINE");
+					if(fgets(temp, MAXLINE, stdin) == NULL) perror("fgets from stdin error");
+					strcat(recvBuffer, temp);
+				}
+				sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+			}
+			else if(state == REGISTER_ACCOUNT)
+			{
+				if(strncmp(recvBuffer, "Account avalible!\n", strlen("Account avalible!\n")) == 0) {
+
+				} else {
+
+				}
+			}
+			else if(state == REGISTER_PASSWORD)
+			{
+				
 			}
 			else if(state == ONLINE)
 			{
 
 			}
-		}
-		if(fgets(sendBuffer, sizeof(sendBuffer), stdin) != NULL)
-		{
-			sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 		}
 	}
 
@@ -123,7 +147,7 @@ void sendCommand(int udpfd, const struct sockaddr *servaddr_ptr, char *command)
 			char ack[MAXLINE];
 			recvfrom(udpfd, ack, MAXLINE, 0, NULL, NULL);
 			if(strcmp(ack, "ack") == 0) return;
-			else fprintf(stderr, "receive something not ack\n");
+			else fprintf(stderr, "receive something not ack:%s\n", ack);
 		}
 		else continue; // needs retransmition
 	}
@@ -132,6 +156,7 @@ void sendCommand(int udpfd, const struct sockaddr *servaddr_ptr, char *command)
 void receive_print(int udpfd, const struct sockaddr *servaddr_ptr, char *recvBuffer)
 {
 	int n = recvfrom(udpfd, recvBuffer, MAXLINE, 0, NULL, NULL);
+	sendAck(udpfd, servaddr_ptr);
 	if(n <= 0) perror("receive_print error");
 	else {
 		recvBuffer[n] = '\0';

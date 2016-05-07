@@ -1,4 +1,4 @@
-CC=gcc -Wall
+CC=g++ -Wall
 ser_c=server.cpp
 cli_c=client.cpp
 all: ${ser_c} ${cli_c}

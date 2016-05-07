@@ -1,6 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -15,43 +15,84 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
+#include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 
 #define MAXLINE 2048
-#define LISTENQ 1024
 typedef enum
 {
-	OFFLINE
+	CREATING,
+	OFFLINE,
+	MENU,
+	WRITING_ARTICLE
 }UserState;
+
+char loginString[MAXLINE];
+//char loginPasswordString[MAXLINE];
+char menuString[MAXLINE];
+char wellcomeString[MAXLINE];
+void sendAck(int udpfd, const struct sockaddr *cliaddr_ptr);
+void sendOne(int udpfd, char* sendBuffer, struct sockaddr *cliaddr_ptr);
 
 class User
 {
 public:
-	std::string acount;
-	std::string password;
-	std::string birthday;
+	char account[100];
+	char password[100];
+	char birthday[100];
 	struct tm* registerTime;
 	struct tm* lastLoginTime;
 	UserState state;
-	
-	void processMessage(char *message)
+	User()
 	{
-
+		account[0] = '\0';
+		password[0] = '\0';
+		birthday[0] = '\0';
+		registerTime = lastLoginTime = NULL;
+		state = CREATING;
+	}
+	void loginCheck_send(int udpfd, char *recvBuffer, char *sendBuffer, struct sockaddr* cliaddr_ptr)
+	{
+		char passwordTried[MAXLINE];
+		sscanf(recvBuffer + strlen(account), " %s", passwordTried);
+		if(strcmp(passwordTried, password) != 0 && (strlen(recvBuffer) > strlen(account)))
+		{
+			strcpy(sendBuffer, wellcomeString);
+			strcat(sendBuffer, "Hello ");
+			strcat(sendBuffer, account);
+			strcat(sendBuffer, "!\n");
+			if(lastLoginTime != NULL)
+			{
+				strcat(sendBuffer, "Last time when you login: ");
+				strcat(sendBuffer, asctime(lastLoginTime));
+			}
+			else
+			{
+				strcat(sendBuffer, "This is the first log in!");
+			}
+			strcat(sendBuffer, "\n");
+			strcat(sendBuffer, menuString);
+			time_t rawtime;
+			time(&rawtime);
+			lastLoginTime = localtime(&rawtime);
+				this->state = MENU;
+		}
+		else
+		{
+			strcpy(sendBuffer, "Fail to log in, password not fit or account not exist\n");
+			strcat(sendBuffer, loginString);
+		}
+		sendOne(udpfd, sendBuffer, cliaddr_ptr);
 	}
 };
 
-char loginAccountString[MAXLINE];
-char loginPasswordString[MAXLINE];
-char menuString[MAXLINE];
-char wellcomeString[MAXLINE];
 void initialString()
 {
-	strcpy(menuString, //"[SP]Show Profile [SA]Show Article [A]dd Article\n
-						//[E]nter Article [C]hat [S]earch [L]ogout\n\0");
-		"");
-	strcpy(loginAccountString, "Enter your account to login( or enter \"new\" to register ): ");
-	strcpy(loginPasswordString, "Enter your password: ");
+	strcpy(menuString, "[SP]Show Profile\n[SA]Show Article\n[A]dd Article\n[E]nter Article\n[C]hat\n[S]earch\n[L]ogout\n");
+	strcpy(loginString, "Enter your account and password to login, seperated by a space\n( or enter \"new\" to register ): ");
+//	strcpy(loginPasswordString, "Enter your password: ");
 
 	strcpy(wellcomeString, "");
 	FILE * ascii = fopen("wellcome_ASCII.txt", "r");
@@ -63,8 +104,6 @@ void initialString()
 	fclose(ascii);
 }
 
-void sendAck(int udpfd, const struct sockaddr *cliaddr_ptr);
-void sendOne(int udpfd, char* sendBuffer, struct sockaddr *cliaddr_ptr);
 
 int main(int argc, char **argv)
 {
@@ -95,8 +134,7 @@ int main(int argc, char **argv)
 	// structure to grab client's information
 	struct sockaddr_in cliaddr_in;
 	socklen_t clilen = sizeof cliaddr_in;
-
-	std::vector<User> userList();
+	std::map<std::string, User *> accountMap;
 
 	for ( ; ; ) {
 		//printf("for loop begin\n");
@@ -108,26 +146,53 @@ int main(int argc, char **argv)
 		{
 			int n = recvfrom(udpfd, recvBuffer, MAXLINE, 0, (struct sockaddr *)&cliaddr_in, &clilen);
 			recvBuffer[n] = '\0';
+			printf("receive: %s\n", recvBuffer);
 			sendAck(udpfd, (struct sockaddr *)&cliaddr_in);
 
-			char account[MAXLINE];
-			sscanf(recvBuffer, "%s", account);
-			if(strcmp(account, "NULL") == 0)
+			char status[MAXLINE];
+			sscanf(recvBuffer, "%s", status);
+			if(strcmp(status, "NULL") == 0)
 			{
-				strcpy(sendBuffer, loginAccountString);
+				strcpy(sendBuffer, loginString);
+				sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
+			}
+			else if(strcmp(status, "LOGIN") == 0)
+			{
+				char accountBuffer[100];
+				sscanf(recvBuffer, "LOGIN %s", accountBuffer);
+				if(strcmp(accountBuffer, "new")) {
+					strcpy(sendBuffer, "Create a new account!! Please enter the following content of your new account\n");
+					strcat(sendBuffer, "\n Your new account: ");
+					sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
+				}
+				else {
+					std::string accountCppString(accountBuffer);
+					if(accountMap.find(accountCppString) == accountMap.end()) {
+						strcpy(sendBuffer, "Fail to log in, password not fit or account not exist\n");
+						strcat(sendBuffer, loginString);
+						sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
+					}
+					else {
+						accountMap.at(accountCppString)->loginCheck_send(udpfd, recvBuffer, sendBuffer, (struct sockaddr *)&cliaddr_in);
+					}
+				}
+			}
+			else if(strcmp(status, "REGISTER_ACCOUNT") == 0)
+			{
+				char newAccount[100];
+				sscanf(recvBuffer, "CREATING %s", newAccount);
+				if(accountMap.find(newAccount) != accountMap.end()) {
+					strcpy(sendBuffer, "Account avalible!\n");
+					strcat(sendBuffer, "Enter your password: ");
+				} else {
+					strcpy(sendBuffer, "Account used!\n");
+					strcat(sendBuffer, "Please enter another new account: ");
+				}
 				sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
 			else
 			{
-				if(strcmp(account, "new") == 0)
-				{
 
-				}
-				else
-				{
-					strcpy(sendBuffer, loginPasswordString);
-					sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
-				}
 			}
 		}
 		
@@ -168,7 +233,7 @@ void sendOne(int udpfd, char* sendBuffer, struct sockaddr *cliaddr_ptr)
 		}
 		else
 		{
-			printf("needs retransmition: %s\n", sendBuffer);
+			printf("RETRASMITION: %s\n", sendBuffer);
 		} 
 	}
 }
