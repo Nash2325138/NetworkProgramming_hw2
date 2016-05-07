@@ -21,15 +21,6 @@
 #define LISTENQ 1024
 void tcp_echo(int sockfd);
 void dg_echo(int udpfd);
-void handler(int kkkk)
-{
-	int pid, stats;
-	for(;;){
-		pid = waitpid(-1, &stats, WCONTINUED);
-		if(pid == -1) break;
-		printf("pid: %d terminated.\n", pid);
-	}
-}
 
 class User
 {
@@ -43,7 +34,7 @@ public:
 	
 	void processMessage(std::string message)
 	{
-		
+
 	}
 };
 
@@ -62,13 +53,6 @@ int main(int argc, char **argv)
 	servaddr.sin_addr.s_addr = htonl (INADDR_ANY); // for any interface
 	servaddr.sin_port = htons(atoi(argv[1])); //user define
 
-
-	//TCP client part
-	int listenfd = socket (AF_INET, SOCK_STREAM, 0);	
-	bind(listenfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
-	listen(listenfd, LISTENQ);
-
-
 	int udpfd;
 	if( (udpfd = socket(AF_INET, SOCK_DGRAM, 0) ) < 0) perror("socket error");
 	if( bind(udpfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) perror("bind error");
@@ -78,36 +62,13 @@ int main(int argc, char **argv)
 	FD_SET(listenfd, &allset);
 	FD_SET(udpfd, &allset);
 
-	// handle zombie process
-	signal(SIGCHLD, handler);
 
 	// start wait for any UDP data gram or TCP connection, using select()
 	for ( ; ; ) {
 		//printf("for loop begin\n");
 		rset = allset;
-		int maxfd = (listenfd > udpfd) ? listenfd : udpfd;
+		int maxfd = udpfd;
 		select(maxfd+1, &rset, NULL, NULL, NULL);
-		if(FD_ISSET(listenfd, &rset))
-		{
-			struct sockaddr_in cliaddr;
-			socklen_t clilen = sizeof(cliaddr);
-			int connfd = accept(listenfd, (struct sockaddr *) &cliaddr, &clilen);
-			pid_t childpid;
-			if ( (childpid = fork()) == 0) { /* child process */
-				close(listenfd);
-
-				// print the information of TCP's client connection
-				int cliPort = ntohs(cliaddr.sin_port);
-				char cliAddrStr[INET_ADDRSTRLEN];
-				inet_ntop(AF_INET, &cliaddr.sin_addr, cliAddrStr, INET_ADDRSTRLEN);	
-				printf("TCP Connection from %s, port: %d\n", cliAddrStr, cliPort);
-
-				tcp_echo(connfd); // process the request 
-
-				exit(0); //close child process 
-			}
-			close(connfd); // closes connected socket of parent process
-		}
 		
 		if(FD_ISSET(udpfd, &rset))
 		{
@@ -115,6 +76,14 @@ int main(int argc, char **argv)
 		}
 		
 	}
+}
+
+void sendAck(int udpfd, const struct sockaddr *cliaddr_ptr)
+{
+	socklen_t servlen = sizeof (struct sockaddr);
+	char ack[10];
+	strcpy(ack, "ack");
+	sendto(udpfd, ack, sizeof ack, 0, cliaddr_ptr, servlen);
 }
 
 void tcp_echo(int sockfd)

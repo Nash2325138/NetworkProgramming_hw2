@@ -18,15 +18,26 @@
 
 #define MAXLINE 2048
 
+typedef enum
+{
+	INIT,
+	LOGIN,
+	MENU
+}State;
 
-void dg_cli(FILE *fp, int udpfd, const struct sockaddr *servaddr_ptr, socklen_t servlen);
-void tcp_cli(FILE *fp, int serverfd);
+State state;
+char account[MAXLINE];
+//void dg_cli(FILE *fp, int udpfd, const struct sockaddr *servaddr_ptr, socklen_t servlen);
+//void tcp_cli(FILE *fp, int serverfd);
+
+void sendCommand(int udpfd, const struct sockaddr *servaddr_ptr, char *command);
+void receive_print(int udpfd, const struct sockaddr *servaddr_ptr, char *recvBuffer);
+void sendAck(int udpfd, const struct sockaddr *servaddr_ptr);
 int main (int argc, char **argv)
 {
 	int servfd;
 	char recvBuffer[MAXLINE];
 	char sendBuffer[MAXLINE];
-	char acount[MAXLINE];
 	struct sockaddr_in servaddr;
 	if(argc!=3){
 		fprintf(stderr, "Usage: ./<executable file> <server IP> <server port>\n");
@@ -40,23 +51,52 @@ int main (int argc, char **argv)
 	servaddr.sin_port = htons(atoi(argv[2]));
 	if( (inet_pton(AF_INET, argv[1], &servaddr.sin_addr)) <= 0 ) perror("inet_pton error");
 	
+	if( (servfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) perror("socket error");
+	
+
 	strcpy(sendBuffer, "NULL");
-	sendCommand(udpfd, (struct sockaddr)&servaddr, command);
+	sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 
-
+	state = INIT;
 	fd_set rset, allset;
 	FD_ZERO(&allset);
-	FD_SET(udpfd, &allset);
+	FD_SET(servfd, &allset);
 	for( ; ; )
 	{
 		rset = allset;
-		int maxfd = rset;
+		int maxfd = servfd;
 		select(maxfd+1, &rset, NULL, NULL, NULL);
-		if(FD_ISSET(udpfd, &rset))
+		if(FD_ISSET(servfd, &rset))
 		{
-			int n = recvfrom(udpfd, recvBuffer, MAXLINE, 0, NULL, NULL);
+			int n = recvfrom(servfd, recvBuffer, MAXLINE, 0, NULL, NULL);
 			recvBuffer[n] = '\0';
-			sendAck(udpfd, )
+			sendAck(servfd, (struct sockaddr *)&servaddr);
+			if(fputs(recvBuffer, stdout) == EOF) perror("fputs error"); 
+			if(state == INIT)
+			{
+				fputs(recvBuffer, stdout);
+				state = LOGIN;
+			}
+			else if(state == LOGIN)
+			{
+				char successMessage[MAXLINE];
+				sscanf(recvBuffer, "%s", successMessage);
+				if(strcmp(successMessage, "success") == 0) {}
+				else if(strcmp(successMessage, "fail") == 0)
+				{
+					sscanf(recvBuffer, "success %s", account);
+					state = MENU;
+				}
+				else fprintf(stderr, "successMessage read something else\n");
+			}
+			else if(state == MENU)
+			{
+
+			}
+		}
+		if(fgets(sendBuffer, sizeof(sendBuffer), stdin) != NULL)
+		{
+			sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 		}
 	}
 
@@ -101,7 +141,8 @@ void receive_print(int udpfd, const struct sockaddr *servaddr_ptr, char *recvBuf
 void sendAck(int udpfd, const struct sockaddr *servaddr_ptr)
 {
 	socklen_t servlen = sizeof (struct sockaddr);
-	char ack[10];
-	strcpy(ack, "ack");
+	char ack[MAXLINE];
+	strcpy(ack, account);
+	strcat(ack, " ack");
 	sendto(udpfd, ack, sizeof ack, 0, servaddr_ptr, servlen);
 }
