@@ -19,8 +19,10 @@
 
 #define MAXLINE 2048
 #define LISTENQ 1024
-void tcp_echo(int sockfd);
-void dg_echo(int udpfd);
+typedef enum
+{
+	OFFLINE
+}UserState;
 
 class User
 {
@@ -30,7 +32,7 @@ public:
 	std::string birthday;
 	struct tm* registerTime;
 	struct tm* lastLoginTime;
-	bool isOnline;
+	UserState state;
 	
 	void processMessage(std::string message)
 	{
@@ -59,7 +61,6 @@ int main(int argc, char **argv)
 
 	fd_set rset, allset;
 	FD_ZERO(&allset);
-	FD_SET(listenfd, &allset);
 	FD_SET(udpfd, &allset);
 
 
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
 		
 		if(FD_ISSET(udpfd, &rset))
 		{
-			dg_echo(udpfd);
+			
 		}
 		
 	}
@@ -97,24 +98,6 @@ void tcp_echo(int sockfd)
 			goto again; //ignore EINTR
 		else if (n < 0)
 			printf("tcp_echo: read error");
-}
-
-void dg_echo(int udpfd)
-{
-	char message[MAXLINE];
-	struct sockaddr_in cliaddr_in;
-	socklen_t clilen = sizeof cliaddr_in;
-
-	int n = recvfrom(udpfd, message, sizeof message, 0, (struct sockaddr *)&cliaddr_in, &clilen);
-
-	// print information of data gram
-	char cliAddrStr[INET_ADDRSTRLEN];
-	if( inet_ntop(AF_INET, &(cliaddr_in.sin_addr), cliAddrStr, INET_ADDRSTRLEN) <= 0) perror("inet_ntop error");
-	int cliPort = ntohs(cliaddr_in.sin_port);	
-	fprintf(stdout, "UDP data gram from %s connect to port: %d\n", cliAddrStr, cliPort);
-	
-	// echo back
-	sendto(udpfd, message, n, 0, (struct sockaddr *)&cliaddr_in, clilen);
 }
 /*
 int udpReceiveOne(int udpfd, char* recvBuffer, struct sockaddr_in *cliaddr_in)
