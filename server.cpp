@@ -20,12 +20,10 @@
 #include <vector>
 #include <map>
 
+#include "User.h"
+#include "Article.h"
+
 #define MAXLINE 2048
-typedef enum
-{
-	OFFLINE,
-	ONLINE
-}UserState;
 
 char loginAccountString[MAXLINE];
 char loginPasswordString[MAXLINE];
@@ -37,55 +35,17 @@ char chatMenuString[MAXLINE];
 char searchMenuString[MAXLINE];
 
 void sendAck(int udpfd, const struct sockaddr *cliaddr_ptr);
-void sendOne(int udpfd, char* sendBuffer, struct sockaddr *cliaddr_ptr);
+void sendOne(int udpfd, char* sendBuffer, const struct sockaddr *cliaddr_ptr);
 
-class User
-{
-public:
-	char account[100];
-	char password[100];
-	char nickname[100];
-	char birthday[100];
-	struct tm* registerTime;
-	struct tm* lastLoginTime;
-	UserState state;
-	User(char *account)
-	{
-		strcpy(this->account, account);
-		password[0] = '\0';
-		birthday[0] = '\0';
-		registerTime = lastLoginTime = NULL;
-		state = OFFLINE;
-	}
-	void catWellcomeToBuffer(char *sendBuffer)
-	{
-		strcat(sendBuffer, wellcomeString);
-		strcat(sendBuffer, "Hello ");
-		strcat(sendBuffer, nickname);
 
-		strcat(sendBuffer, "!\n");
-		if(lastLoginTime != NULL) {
-			strcat(sendBuffer, "Last time when you login: ");
-			strcat(sendBuffer, asctime(lastLoginTime));
-		}
-		else {
-			strcat(sendBuffer, "This is your first log in!");
-		}
-		strcat(sendBuffer, "\n");
-		strcat(sendBuffer, mainMenuString);
-		time_t rawtime;
-		time(&rawtime);
-		lastLoginTime = localtime(&rawtime);
-		this->state = ONLINE;
-	}
-};
 
 void initialString()
 {
-	strcpy(mainMenuString, "[S]how profile\n[A]rticle\n[C]hat\n[S]earch\n[L]ogout\n");
-	strcpy(articleMenuString, "[S]ee Article\n[A]dd Article\n[B]ack\n");
-	strcpy(chatMenuString, "[LF]List Friends\n[LC]List Chat room\n[C]reate chat room\n[E]nter chat room\n[B]ack\n");
-	strcpy(searchMenuString, "[N]ickname search\n[A]ccount search\n[B]ack\n");
+	strcpy(mainMenuString, "[SP]Show Profile\n[MP]Modify Profile\n[SA]Show Article\n[E]nter article <article number>\n[A]dd article <title>\n[C]hat\n[S]earch\n[L]ogout\n[H]elp commands\n");
+	strcpy(articleMenuString, "[L]ike\n[C]omment <\"put your command here\">\n[B]ack\n");
+	strcpy(chatMenuString, "[LF]List Friends\n[LC]List Chat room\n[C]reate chat room\n[E]nter chat room <chat room number>\n[B]ack\n");
+	strcpy(searchMenuString, "[N]ickname search <nickname>\n[A]ccount search <account>\n[B]ack\n");
+	
 	strcpy(loginAccountString, "Enter your account( or enter \"new\" to register ): ");
 	strcpy(loginPasswordString, "Enter your password: ");
 
@@ -131,6 +91,8 @@ int main(int argc, char **argv)
 	struct sockaddr_in cliaddr_in;
 	socklen_t clilen = sizeof cliaddr_in;
 	std::map<std::string, User *> accountMap;
+	std::vector<Article *> articleList;
+	int article_ID_counter = 0;
 
 	for ( ; ; ) {
 		//printf("for loop begin\n");
@@ -144,21 +106,99 @@ int main(int argc, char **argv)
 			recvBuffer[n] = '\0';
 			printf("receive: %s\n", recvBuffer);
 			sendAck(udpfd, (struct sockaddr *)&cliaddr_in);
+
 			char status[MAXLINE];
 			sscanf(recvBuffer, "%s", status);
 
-			if(strcmp(status, "ONLINE") == 0)
+			if(strcmp(status, "ONLINE_WRITING") == 0)
 			{
-				printf("Let User class to process it\n");
-				sprintf(sendBuffer, "Let User class to process it\n");
+				char account[200];
+				char partContent[MAXLINE-50];
+				sscanf(recvBuffer, "ONLINE_WRITING %s %s", account, partContent);
+				std::string cppAccount(account);
+				accountMap.at(account)->catBufferdArticle(partContent);
+				// needs not sending anything to client, just let client keep writing
+			}
+			else if(strcmp(status, "END_WRITING") == 0)
+			{
+				char account[200];
+				sscanf(recvBuffer, "END_WRITING %s", account);
+				std::string cppAccount(account);
+				articleList.push_back(new Article( accountMap.at(cppAccount), &cliaddr_in, article_ID_counter++,
+									accountMap.at(cppAccount)->ba_title, accountMap.at(cppAccount)->bufferdArticle) );
+				
+				sprintf(sendBuffer, "Your writing has been successfully pushed to the articles' list.\n");
 				sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
-			else // the user send this package has not logged in yet
+			else if(strcmp(status, "ONLINE_MAIN_MENU") == 0)
+			{
+				char command[200];
+				char account[200];
+				sscanf(recvBuffer, "ONLINE_MAIN_MENU %s %s", account, command);
+				std::string cppAccount(account);
+				if(strcmp(command, "SP") == 0)
+				{
+					sendBuffer[0] = '\0';
+					accountMap.at(cppAccount)->catProfileToBuffer(sendBuffer);
+				}
+				else if(strcmp(command, "MP") == 0)
+				{
+					
+				}
+				else if(strcmp(command, "SA") == 0)
+				{
+					
+				}
+				else if(strcmp(command, "E") == 0)
+				{
+					
+				}
+				else if(strcmp(command, "A") == 0)
+				{
+					char title[200];
+					sscanf(recvBuffer, "ONLINE_MAIN_MENU %*s %*s %s", title); // account, command, title
+					accountMap.at(cppAccount)->newBufferedArticle(title);
+					sprintf(sendBuffer, "You can start writing now:\n");
+				}
+				else if(strcmp(command, "C") == 0)
+				{
+					
+				}
+				else if(strcmp(command, "S") == 0)
+				{
+					
+				}
+				else if(strcmp(command, "L") == 0)
+				{
+					
+				}
+				else if(strcmp(command, "H") == 0)
+				{
+					sprintf(sendBuffer, "%s", mainMenuString);
+				}
+				else
+				{
+					sendBuffer[0] = '\0';
+				}
+				sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
+			}
+			else if(strcmp(status, "ONLINE_ARTICLE_MENU") == 0)
+			{
+				
+			}
+			else if(strcmp(status, "ONLINE_CHAT_MENU") == 0)
+			{
+				
+			}
+			else if(strcmp(status, "ONLINE_SEARCH_MENU") == 0)
+			{
+				
+			}
+			else // the user who sent this package has not logged in yet
 			{
 				if(strcmp(status, "NULL") == 0)
 				{
 					strcpy(sendBuffer, loginAccountString);
-					sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 				}
 				else if(strcmp(status, "LOGIN_ACCOUNT") == 0)
 				{
@@ -171,7 +211,6 @@ int main(int argc, char **argv)
 					else {
 						strcpy(sendBuffer, loginPasswordString);
 					}
-					sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 				}
 				else if(strcmp(status, "LOGIN_PASSWORD") == 0)
 				{
@@ -191,10 +230,8 @@ int main(int argc, char **argv)
 						strcat(sendBuffer, loginAccountString);
 					}
 					else {
-						strcpy(sendBuffer, "\n");
-						accountMap.at(accountCppString)->catWellcomeToBuffer(sendBuffer);
-					}
-					sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
+						sprintf(sendBuffer, "Successfully log in! (Send any message to continue.)\n");
+					}	
 				}
 				else if(strcmp(status, "REGISTER_ACCOUNT") == 0)
 				{
@@ -209,7 +246,6 @@ int main(int argc, char **argv)
 						strcpy(sendBuffer, "--------------Account used!-------------\n");
 						strcat(sendBuffer, "    Please enter another new account: ");
 					}
-					sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 				}
 				else if(strcmp(status, "REGISTER_PASSWORD") == 0)
 				{
@@ -223,7 +259,6 @@ int main(int argc, char **argv)
 					}
 					strcpy(accountMap.at(cppTempString)->password, newPassword);
 					sprintf(sendBuffer, "    Enter a nickname: ");
-					sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 				}
 				else if(strcmp(status, "REGISTER_NICKNAME") == 0)
 				{
@@ -237,7 +272,6 @@ int main(int argc, char **argv)
 					}
 					strcpy(accountMap.at(cppTempString)->nickname, newNickName);
 					sprintf(sendBuffer, "    Enter your birthday( format: yyyy/mm/dd, EX: 1995/02/28 ): ");
-					sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 				}
 				else if(strcmp(status, "REGISTER_BIRTHDAY") == 0)
 				{
@@ -250,10 +284,23 @@ int main(int argc, char **argv)
 						exit(EXIT_FAILURE);
 					}
 					strcpy(accountMap.at(cppTempString)->birthday, newBirthday);
-					sprintf(sendBuffer, "Regitster Success!\n");
-					accountMap.at(cppTempString)->catWellcomeToBuffer(sendBuffer);	
-					sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
+					sprintf(sendBuffer, "Regitster Success! (Send any message to continue.)\n");
+					//accountMap.at(cppTempString)->catWellcomeToBuffer(sendBuffer);
 				}
+				else if(strcmp(status, "LOGIN_COMPLETE") == 0)
+				{
+					char nowAccount[100];
+					sscanf(recvBuffer, "LOGIN_COMPLETE %s", nowAccount);
+
+					std::string cppTempString(nowAccount);
+					if(accountMap.find(cppTempString) == accountMap.end()) {
+						fprintf(stderr, "No such account: %s\n", nowAccount);
+						exit(EXIT_FAILURE);
+					}
+					strcpy(sendBuffer, "\n");
+					accountMap.at(cppTempString)->catWellcomeToBuffer(sendBuffer);
+				}
+				sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
 		}
 		
@@ -267,7 +314,7 @@ void sendAck(int udpfd, const struct sockaddr *cliaddr_ptr)
 	sendto(udpfd, ack, strlen(ack), 0, cliaddr_ptr, servlen);
 }
 
-void sendOne(int udpfd, char* sendBuffer, struct sockaddr *cliaddr_ptr)
+void sendOne(int udpfd, char* sendBuffer, const struct sockaddr *cliaddr_ptr)
 {
 	socklen_t servlen = sizeof (struct sockaddr);
 	fd_set rset, allset;
@@ -298,15 +345,34 @@ void sendOne(int udpfd, char* sendBuffer, struct sockaddr *cliaddr_ptr)
 		} 
 	}
 }
-/*
-int udpReceiveOne(int udpfd, char* recvBuffer, struct sockaddr_in *cliaddr_in)
+void transFileTo(int udpfd, const struct sockaddr *cliaddr_ptr, FILE *fp, int fileSize)
 {
-	socklen_t clilen = sizeof (struct sockaddr_in);
-	int n = recvfrom(udpfd, recvBuffer, sizeof recvBuffer, (struct sockaddr *)cliaddr_in, &clilen);
+	char sendline[MAXLINE];
+	int numBytes;
+	while(fileSize > 0)
+	{
+		numBytes = fread(sendline, sizeof(char), MAXLINE, fp);
+		sendOne(udpfd, sendline, cliaddr_ptr);
+		fileSize -= numBytes;
 
-	char ack[10];
-	strcpy(ack, "ack");
+		//fprintf(stdout, "!!!\n%s\n!!!", sendline);
+		//fprintf(stdout, "%d\n", numBytes);
+	}
+	//fprintf(stdout, "transfer finish\n");
+}
+void receiveFileFrom(int udpfd, const struct sockaddr *cliaddr_ptr, FILE *fp, int fileSize)
+{
+	int numBytes;
+	char recvBuffer[MAXLINE+1];
+	while(fileSize > 0)
+	{
+		numBytes = recvfrom(udpfd, recvBuffer, MAXLINE, 0, NULL, NULL);
+		sendAck(udpfd, cliaddr_ptr);
+		numBytes = fwrite(recvBuffer, sizeof(char), numBytes, fp);
+		fileSize -= numBytes;
+		//fprintf(stdout, "!!!\n%s\n!!!", recvline);
+		//fprintf(stdout, "%d\n", numBytes);
 
-	sendto(udpfd, ack, sizeof ack, 0, (struct sockaddr *)cliaddr_in, clilen);
-	return n;
-}*/
+	}
+	//fprintf(stdout, "receive finish\n");
+}

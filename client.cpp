@@ -27,18 +27,28 @@ typedef enum
 	REGISTER_PASSWORD,
 	REGISTER_NICKNAME,
 	REGISTER_BIRTHDAY,
+	LOGIN_COMPLETE,
 
 	ONLINE_MAIN_MENU,
 	ONLINE_ARTICLE_MENU,
 	ONLINE_CHAT_MENU,
-	ONLINE_SEARCH_MENU
+	ONLINE_SEARCH_MENU,
+	ONLINE_WRITING
 }State;
 
 bool isStateOnline(State state)
 {
 	if(state==ONLINE_MAIN_MENU || state==ONLINE_ARTICLE_MENU || state==ONLINE_CHAT_MENU
-		|| state==ONLINE_SEARCH_MENU) return true;
+		|| state==ONLINE_SEARCH_MENU || state==ONLINE_WRITING) return true;
 	return false;
+}
+int getFileSize(FILE *file)
+{
+	int ans;
+	fseek(file, 0L, SEEK_END);
+	ans = ftell(file);
+	rewind(file);
+	return ans;
 }
 
 State state;
@@ -46,9 +56,11 @@ char account[MAXLINE];
 //void dg_cli(FILE *fp, int udpfd, const struct sockaddr *servaddr_ptr, socklen_t servlen);
 //void tcp_cli(FILE *fp, int serverfd);
 
-void sendCommand(int udpfd, const struct sockaddr *servaddr_ptr, char *command);
+void sendOne(int udpfd, const struct sockaddr *servaddr_ptr, char *command);
 void receive_print(int udpfd, const struct sockaddr *servaddr_ptr, char *recvBuffer);
 void sendAck(int udpfd, const struct sockaddr *servaddr_ptr);
+void transFileTo(int udpfd, const struct sockaddr *servaddr_ptr, FILE *fp, int fileSize);
+void receiveFileFrom(int udpfd, const struct sockaddr *servaddr_ptr, FILE *fp, int fileSize);
 int main (int argc, char **argv)
 {
 	setbuf(stdout, NULL);
@@ -77,7 +89,7 @@ int main (int argc, char **argv)
 	FD_SET(servfd, &allset);
 
 	strcpy(sendBuffer, "NULL");
-	sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+	sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 	for( ; ; )
 	{
 		rset = allset;
@@ -90,47 +102,93 @@ int main (int argc, char **argv)
 			sendAck(servfd, (struct sockaddr *)&servaddr);
 			if(isStateOnline(state))	// already online!
 			{
-				if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
-				if(fscanf(stdin, "%s", temp) == EOF) perror("fscanf error:");
-				char command[100];
-				sscanf(temp, "%s", command);
-				while(state == ONLINE_MAIN_MENU)
+				if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error");
+				if(state == ONLINE_WRITING)
 				{
-					sprintf(sendBuffer, "ONLINE_MAIN_MENU %s %s", account, command);
-					n = recvfrom(servfd, recvBuffer, MAXLINE, 0, NULL, NULL);
-					recvBuffer[n] = '\0';
-					sendAck(servfd, (struct sockaddr *)&servaddr);
+					char typingBuffer[MAXLINE-50];
+					while(true)
+					{
+						if(feof(stdin)) break;
+						fgets(typingBuffer, sizeof(typingBuffer), stdin);
+						if(feof(stdin)) break;
+						sprintf(sendBuffer, "ONLINE_WRITING %s %s", account, typingBuffer);
+						sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+					}
+					printf("break out\n");
+					sprintf(sendBuffer, "END_WRITING %s", account);
+					state = ONLINE_MAIN_MENU;
+
+					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+					continue;
 				}
-				while(state == ONLINE_ARTICLE_MENU)
+
+				if(fgets(temp, sizeof(temp), stdin) == NULL) perror("fgets error:");
+				temp[strlen(temp)] = '\0';	// replace '\n'
+				
+				char command[100];
+				sscanf(temp, " %s", command);
+
+				if(state == ONLINE_MAIN_MENU)
+				{
+					sprintf(sendBuffer, "ONLINE_MAIN_MENU %s %s", account, temp);
+					if(strcmp(command, "SP") == 0) {
+						
+					}
+					else if(strcmp(command, "SA") == 0) {
+
+					}
+					else if(strcmp(command, "E") == 0) {
+						state = ONLINE_ARTICLE_MENU;
+					}
+					else if(strcmp(command, "A") == 0) {
+						state = ONLINE_WRITING;
+					}
+					else if(strcmp(command, "C") == 0) {
+						state = ONLINE_CHAT_MENU;
+					}
+					else if(strcmp(command, "S") == 0) {
+						state = ONLINE_SEARCH_MENU;
+					}
+					else if(strcmp(command, "L") == 0) {
+						state = INIT;
+					}
+					else
+					{
+
+					}
+					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+
+				}
+				else if(state == ONLINE_ARTICLE_MENU)
 				{
 					sprintf(sendBuffer, "ONLINE_ARTICLE_MENU %s %s", account, command);
+					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
-				while(state == ONLINE_CHAT_MENU)
+				else if(state == ONLINE_CHAT_MENU)
 				{
 					sprintf(sendBuffer, "ONLINE_CHAT_MENU %s %s", account, command);
+					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
-				while(state == ONLINE_SEARCH_MENU)
+				else if(state == ONLINE_SEARCH_MENU)
 				{
 					sprintf(sendBuffer, "ONLINE_SEARCH_MENU %s %s", account, command);
+					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 			}
 			else // haven't login
 			{
+				if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
+				if(fscanf(stdin, " %s", temp) == EOF) perror("fscanf error:");
+
 				if(state == INIT)
 				{
-					if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
-					if(fscanf(stdin, "%s", temp) == EOF) perror("fscanf error:");
 					state = LOGIN_ACCOUNT;
 
 					strcpy(account, temp);	// suppose log in successfully
 					sprintf(sendBuffer, "LOGIN_ACCOUNT %s", temp);
-					sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 				else if(state == LOGIN_ACCOUNT)
 				{
-					if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error");
-					if(fscanf(stdin, "%s", temp) == EOF) perror("fscanf error:");
-
 					if(strncmp(recvBuffer, "Create", 6) == 0) {
 						state = REGISTER_ACCOUNT;
 						strcpy(account, temp);	// if client want to create new account, override the account
@@ -140,27 +198,20 @@ int main (int argc, char **argv)
 						state = LOGIN_PASSWORD;
 						sprintf(sendBuffer, "LOGIN_PASSWORD %s %s", account, temp);
 					}
-					sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 				else if(state == LOGIN_PASSWORD)
 				{
-					if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error");
-					if(fscanf(stdin, "%s", temp) == EOF) perror("fscanf error:");
 					if(strncmp(recvBuffer, "Fail", 4) == 0) {
 						sprintf(sendBuffer, "LOGIN_ACCOUNT %s", temp);
 						strcpy(account, temp);
 						state = LOGIN_ACCOUNT;
 					} else {
-						sprintf(recvBuffer, "ONLINE %s %s", account, temp);
-						state = ONLINE_MAIN_MENU;
+						sprintf(sendBuffer, "LOGIN_COMPLETE %s %s", account, temp);
+						state = LOGIN_COMPLETE;
 					}
-					sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 				else if(state == REGISTER_ACCOUNT)
 				{
-					if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
-					if(fscanf(stdin, "%s", temp) == EOF) perror("fscanf error:");
-
 					if(strncmp(recvBuffer, "------------Account avalible!-----------\n", strlen("------------Account avalible!-----------\n")) == 0) {
 						sprintf(sendBuffer, "REGISTER_PASSWORD %s %s", account, temp);
 						state = REGISTER_PASSWORD;
@@ -168,32 +219,28 @@ int main (int argc, char **argv)
 						sprintf(sendBuffer, "REGISTER_ACCOUNT %s", temp);
 						strcpy(account, temp);	// if account is used, override the account
 					}
-					sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 				else if(state == REGISTER_PASSWORD)
 				{
-					if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
-					if(fscanf(stdin, "%s", temp) == EOF) perror("fscanf error:");
 					sprintf(sendBuffer, "REGISTER_NICKNAME %s %s", account, temp);
 					state = REGISTER_NICKNAME;
-					sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 				else if(state == REGISTER_NICKNAME)
 				{
-					if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
-					if(fscanf(stdin, "%s", temp) == EOF) perror("fscanf error:");
 					sprintf(sendBuffer, "REGISTER_BIRTHDAY %s %s", account, temp);
 					state = REGISTER_BIRTHDAY;
-					sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 				else if(state == REGISTER_BIRTHDAY)
 				{
-					if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
-					if(fscanf(stdin, "%s", temp) == EOF) perror("fscanf error:");
-					sprintf(sendBuffer, "ONLINE %s %s", account, temp);
-					state = ONLINE_MAIN_MENU;
-					sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+					sprintf(sendBuffer, "LOGIN_COMPLETE %s", account);
+					state = LOGIN_COMPLETE;
 				}
+				else if(state == LOGIN_COMPLETE)
+				{
+					sprintf(sendBuffer, "ONLINE_MAIN_MENU %s", account);
+					state = ONLINE_MAIN_MENU;
+				}
+				sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 			}	
 		}
 	}
@@ -201,7 +248,7 @@ int main (int argc, char **argv)
 	return 0;
 }
 
-void sendCommand(int udpfd, const struct sockaddr *servaddr_ptr, char *command)
+void sendOne(int udpfd, const struct sockaddr *servaddr_ptr, char *command)
 {
 	socklen_t servlen = sizeof (struct sockaddr);
 	fd_set rset, allset;
@@ -248,4 +295,37 @@ void sendAck(int udpfd, const struct sockaddr *servaddr_ptr)
 	char ack[MAXLINE];
 	strcpy(ack, "ack");
 	sendto(udpfd, ack, sizeof ack, 0, servaddr_ptr, servlen);
+}
+
+void transFileTo(int udpfd, const struct sockaddr *servaddr_ptr, FILE *fp, int fileSize)
+{
+	char sendline[MAXLINE];
+	int numBytes;
+	while(fileSize > 0)
+	{
+		numBytes = fread(sendline, sizeof(char), MAXLINE, fp);
+		sendOne(udpfd, servaddr_ptr, sendline);
+		fileSize -= numBytes;
+
+		//fprintf(stdout, "!!!\n%s\n!!!", sendline);
+		//fprintf(stdout, "%d\n", numBytes);
+	}
+	//fprintf(stdout, "transfer finish\n");
+}
+void receiveFileFrom(int udpfd, const struct sockaddr *servaddr_ptr, FILE *fp, int fileSize)
+{
+	int numBytes;
+	char recvBuffer[MAXLINE+1];
+	while(fileSize > 0)
+	{
+		recvfrom(udpfd, recvBuffer, MAXLINE, 0, NULL, NULL);
+		recvBuffer[strlen(recvBuffer)+1] = '\0';
+		sendAck(udpfd, servaddr_ptr);
+		numBytes = fwrite(recvBuffer, sizeof(char), numBytes, fp);
+		fileSize -= numBytes;
+		//fprintf(stdout, "!!!\n%s\n!!!", recvline);
+		//fprintf(stdout, "%d\n", numBytes);
+
+	}
+	//fprintf(stdout, "receive finish\n");
 }
