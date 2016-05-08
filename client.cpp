@@ -122,16 +122,27 @@ int main (int argc, char **argv)
 					continue;
 				}
 
-				if(fgets(temp, sizeof(temp), stdin) == NULL) perror("fgets error:");
-				temp[strlen(temp)] = '\0';	// replace '\n'
-				
-				char command[100];
-				sscanf(temp, " %s", command);
 
 				if(state == ONLINE_MAIN_MENU)
 				{
+					// [SP]Show Profile [MP]Modify Profile [D]elete account [SA]Show Article [E]nter article <article number>
+					// [A]dd article <title> [C]hat [S]earch [L]ogout [H]elp commands
+					
+					// get input line from stdin
+					if(fgets(temp, sizeof(temp), stdin) == NULL) perror("fgets error:");
+					temp[strlen(temp)] = '\0';	// replace '\n'
+
+					// send message
 					sprintf(sendBuffer, "ONLINE_MAIN_MENU %s %s", account, temp);
+					
+					// state change
+					char command[100];
+					sscanf(temp, " %s", command);
 					if(strcmp(command, "SP") == 0) {
+						
+					}
+					else if(strcmp(command, "MP") == 0)
+					{
 						
 					}
 					else if(strcmp(command, "SA") == 0) {
@@ -161,17 +172,99 @@ int main (int argc, char **argv)
 				}
 				else if(state == ONLINE_ARTICLE_MENU)
 				{
-					sprintf(sendBuffer, "ONLINE_ARTICLE_MENU %s %s", account, command);
+					// exception
+					if(strncmp(recvBuffer, "    No such article", strlen("    No such article")) == 0){
+						state = ONLINE_MAIN_MENU;
+						sprintf(sendBuffer, "ONLINE_MAIN_MENU %s Back", account);
+						sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+						continue;
+					}
+
+					// [L]ike [C]omment <\"put your command here\">  [B]ack
+
+					// get input line from stdin
+					fgets(temp, sizeof(temp), stdin);
+					temp[strlen(temp)] = '\0';	// replace '\n'
+					sprintf(sendBuffer, "ONLINE_ARTICLE_MENU %s %s", account, temp);
+					
+					// state change
+					char command[100];
+					sscanf(temp, " %s", command);
+					if(strcmp(command, "L") == 0) {
+
+					}
+					else if(strcmp(command, "C") == 0) {
+
+					}
+					else if(strcmp(command, "B") == 0) {
+						state = ONLINE_MAIN_MENU;
+						sprintf(sendBuffer, "ONLINE_MAIN_MENU %s %s", account, "Back");
+					}
+					else {
+
+					}
+
 					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 				else if(state == ONLINE_CHAT_MENU)
 				{
-					sprintf(sendBuffer, "ONLINE_CHAT_MENU %s %s", account, command);
+					// [LF]List Friends [LC]List Chat room [C]reate chat room [E]nter chat room <chat room number> [B]ack
+
+					// get input line from stdin
+					if(fgets(temp, sizeof(temp), stdin) == NULL) perror("fgets error:");
+					temp[strlen(temp)] = '\0';	// replace '\n'
+					sprintf(sendBuffer, "ONLINE_CHAT_MENU %s %s", account, temp);
+
+					// state change
+					char command[100];
+					sscanf(temp, " %s", command);
+					if(strcmp(command, "LF") == 0) {
+					}
+					else if(strcmp(command, "LC")) {
+
+					}
+					else if(strcmp(command, "C")) {
+						
+					}
+					else if(strcmp(command, "E")) {
+						
+					}
+					else if(strcmp(command, "B")) {
+						
+					}
+					else {
+
+					}
+
 					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 				else if(state == ONLINE_SEARCH_MENU)
 				{
-					sprintf(sendBuffer, "ONLINE_SEARCH_MENU %s %s", account, command);
+					// [N]ickname search <nickname> [A]ccount search <account> [F]riend <account> [B]ack
+
+					// get input line from stdin
+					if(fgets(temp, sizeof(temp), stdin) == NULL) perror("fgets error:");
+					temp[strlen(temp)] = '\0';	// replace '\n'
+					sprintf(sendBuffer, "ONLINE_SEARCH_MENU %s %s", account, temp);
+
+					// state change
+					char command[100];
+					sscanf(temp, " %s", command);
+					if(strcmp(command, "N") == 0) {
+
+					}
+					else if(strcmp(command, "A")) {
+
+					}
+					else if(strcmp(command, "F")) {
+
+					}
+					else if(strcmp(command, "B")) {
+
+					}
+					else {
+
+					}
 					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 			}

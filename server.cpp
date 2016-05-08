@@ -41,8 +41,8 @@ void sendOne(int udpfd, char* sendBuffer, const struct sockaddr *cliaddr_ptr);
 
 void initialString()
 {
-	strcpy(mainMenuString, "[SP]Show Profile\n[MP]Modify Profile\n[SA]Show Article\n[E]nter article <article number>\n[A]dd article <title>\n[C]hat\n[S]earch\n[L]ogout\n[H]elp commands\n");
-	strcpy(articleMenuString, "[L]ike\n[C]omment <\"put your command here\">\n[B]ack\n");
+	strcpy(mainMenuString, "[SP]Show Profile\n[MP]Modify Profile\n[D]elete account\n[SA]Show Article\n[E]nter article <article number>\n[A]dd article <title>\n[C]hat\n[S]earch\n[L]ogout\n[H]elp commands\n");
+	strcpy(articleMenuString, "[L]ike\n[C]omment <\"put your comment here\">\n[B]ack\n");
 	strcpy(chatMenuString, "[LF]List Friends\n[LC]List Chat room\n[C]reate chat room\n[E]nter chat room <chat room number>\n[B]ack\n");
 	strcpy(searchMenuString, "[N]ickname search <nickname>\n[A]ccount search <account>\n[B]ack\n");
 	
@@ -113,10 +113,9 @@ int main(int argc, char **argv)
 			if(strcmp(status, "ONLINE_WRITING") == 0)
 			{
 				char account[200];
-				char partContent[MAXLINE-50];
-				sscanf(recvBuffer, "ONLINE_WRITING %s %s", account, partContent);
+				sscanf(recvBuffer, "ONLINE_WRITING %s", account);
 				std::string cppAccount(account);
-				accountMap.at(account)->catBufferdArticle(partContent);
+				accountMap.at(account)->catBufferdArticle(recvBuffer + strlen("ONLINE_WRITING ") + strlen(account));
 				// needs not sending anything to client, just let client keep writing
 			}
 			else if(strcmp(status, "END_WRITING") == 0)
@@ -132,6 +131,8 @@ int main(int argc, char **argv)
 			}
 			else if(strcmp(status, "ONLINE_MAIN_MENU") == 0)
 			{
+				// [SP]Show Profile [MP]Modify Profile [D]elete account [SA]Show Article [E]nter article <article number>
+				// [A]dd article <title> [C]hat [S]earch [L]ogout [H]elp commands
 				char command[200];
 				char account[200];
 				sscanf(recvBuffer, "ONLINE_MAIN_MENU %s %s", account, command);
@@ -145,13 +146,39 @@ int main(int argc, char **argv)
 				{
 					
 				}
-				else if(strcmp(command, "SA") == 0)
+				else if(strcmp(command, "D") == 0)
 				{
 					
 				}
+				else if(strcmp(command, "SA") == 0)
+				{
+					sprintf(sendBuffer, "        ID|                Title|          Author|                        Time\n");
+					for(unsigned int i=0 ; i<articleList.size() ; i++)
+					{
+						char temp[500];
+						sprintf(temp, "%10d %21s %16s %28s", articleList[i]->uniquedID, articleList[i]->title,
+								 articleList[i]->author->account, asctime(articleList[i]->published_time));
+						strcat(sendBuffer, temp);
+					}
+				}
 				else if(strcmp(command, "E") == 0)
 				{
-					
+					int desired_ID;
+					sscanf(recvBuffer, "ONLINE_MAIN_MENU %*s %*s %d", &desired_ID);
+					unsigned int i;
+					for(i=0 ; i<articleList.size() ; i++)
+					{
+						if(articleList[i]->uniquedID == desired_ID) break;
+					}
+					if(i == articleList.size()) {
+						sprintf(sendBuffer, "    No such article whose ID == %d\n", desired_ID);
+					}
+					else {
+						sendBuffer[0] = '\0';
+						articleList[i]->catArticleTobuffer(sendBuffer);
+						strcat(sendBuffer, articleMenuString);
+					}
+
 				}
 				else if(strcmp(command, "A") == 0)
 				{
@@ -162,37 +189,101 @@ int main(int argc, char **argv)
 				}
 				else if(strcmp(command, "C") == 0)
 				{
-					
+					strcpy(sendBuffer, chatMenuString);
 				}
 				else if(strcmp(command, "S") == 0)
 				{
-					
+					strcpy(sendBuffer, searchMenuString);
 				}
 				else if(strcmp(command, "L") == 0)
 				{
-					
+					sprintf(sendBuffer, "Good Bye~\n");	
 				}
-				else if(strcmp(command, "H") == 0)
+				else if(strcmp(command, "H") == 0 || strcmp(command, "Back") == 0)
 				{
 					sprintf(sendBuffer, "%s", mainMenuString);
 				}
 				else
 				{
-					sendBuffer[0] = '\0';
+					sprintf(sendBuffer, "Invalid command: %s\n", command);
+					strcat(sendBuffer, mainMenuString);
 				}
 				sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
 			else if(strcmp(status, "ONLINE_ARTICLE_MENU") == 0)
 			{
-				
+				//[L]ike [C]omment <\"put your command here\">  [B]ack
+				char command[200];
+				char account[200];
+				sscanf(recvBuffer, "ONLINE_ARTICLE_MENU %s %s", account, command);
+				std::string cppAccount(account);
+				if(strcmp(command, "L") == 0) {
+
+				}
+				else if(strcmp(command, "C")) {
+
+				}
+				else if(strcmp(command, "B")) { // never use
+					strcpy(sendBuffer, mainMenuString);
+				}
+				else {
+					sprintf(sendBuffer, "Invalid command: %s\n", command);
+					strcat(sendBuffer, articleMenuString);
+				}
+				sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
 			else if(strcmp(status, "ONLINE_CHAT_MENU") == 0)
 			{
-				
+				// [LF]List Friends [LC]List Chat room [C]reate chat room [E]nter chat room <chat room number> [B]ack
+				char command[200];
+				char account[200];
+				sscanf(recvBuffer, "ONLINE_CHAT_MENU %s %s", account, command);
+				std::string cppAccount(account);
+				if(strcmp(command, "LF") == 0) {
+
+				}
+				else if(strcmp(command, "LC")) {
+
+				}
+				else if(strcmp(command, "C")) {
+					
+				}
+				else if(strcmp(command, "E")) {
+					
+				}
+				else if(strcmp(command, "B")) {
+					
+				}
+				else {
+					sprintf(sendBuffer, "Invalid command: %s\n", command);
+					strcat(sendBuffer, chatMenuString);
+				}
+				sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
 			else if(strcmp(status, "ONLINE_SEARCH_MENU") == 0)
 			{
-				
+				// [N]ickname search <nickname> [A]ccount search <account> [F]riend <account> [B]ack
+				char command[200];
+				char account[200];
+				sscanf(recvBuffer, "ONLINE_SEARCH_MENU %s %s", account, command);
+				std::string cppAccount(account);
+				if(strcmp(command, "N") == 0) {
+
+				}
+				else if(strcmp(command, "A")) {
+
+				}
+				else if(strcmp(command, "F")) {
+
+				}
+				else if(strcmp(command, "B")) {
+
+				}
+				else {
+					sprintf(sendBuffer, "Invalid command: %s\n", command);
+					strcat(sendBuffer, searchMenuString);
+				}
+				sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
 			else // the user who sent this package has not logged in yet
 			{
