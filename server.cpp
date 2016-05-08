@@ -23,16 +23,19 @@
 #define MAXLINE 2048
 typedef enum
 {
-	CREATING,
 	OFFLINE,
-	MENU,
-	WRITING_ARTICLE
+	ONLINE
 }UserState;
 
 char loginAccountString[MAXLINE];
 char loginPasswordString[MAXLINE];
-char menuString[MAXLINE];
 char wellcomeString[MAXLINE];
+
+char mainMenuString[MAXLINE];
+char articleMenuString[MAXLINE];
+char chatMenuString[MAXLINE];
+char searchMenuString[MAXLINE];
+
 void sendAck(int udpfd, const struct sockaddr *cliaddr_ptr);
 void sendOne(int udpfd, char* sendBuffer, struct sockaddr *cliaddr_ptr);
 
@@ -52,33 +55,37 @@ public:
 		password[0] = '\0';
 		birthday[0] = '\0';
 		registerTime = lastLoginTime = NULL;
-		state = CREATING;
+		state = OFFLINE;
 	}
 	void catWellcomeToBuffer(char *sendBuffer)
 	{
 		strcat(sendBuffer, wellcomeString);
 		strcat(sendBuffer, "Hello ");
-		strcat(sendBuffer, account);
+		strcat(sendBuffer, nickname);
+
 		strcat(sendBuffer, "!\n");
 		if(lastLoginTime != NULL) {
 			strcat(sendBuffer, "Last time when you login: ");
 			strcat(sendBuffer, asctime(lastLoginTime));
 		}
 		else {
-			strcat(sendBuffer, "This is the first log in!");
+			strcat(sendBuffer, "This is your first log in!");
 		}
 		strcat(sendBuffer, "\n");
-		strcat(sendBuffer, menuString);
+		strcat(sendBuffer, mainMenuString);
 		time_t rawtime;
 		time(&rawtime);
 		lastLoginTime = localtime(&rawtime);
-		this->state = MENU;
+		this->state = ONLINE;
 	}
 };
 
 void initialString()
 {
-	strcpy(menuString, "[SP]Show Profile\n[SA]Show Article\n[A]dd Article\n[E]nter Article\n[C]hat\n[S]earch\n[L]ogout\n");
+	strcpy(mainMenuString, "[S]how profile\n[A]rticle\n[C]hat\n[S]earch\n[L]ogout\n");
+	strcpy(articleMenuString, "[S]ee Article\n[A]dd Article\n[B]ack\n");
+	strcpy(chatMenuString, "[LF]List Friends\n[LC]List Chat room\n[C]reate chat room\n[E]nter chat room\n[B]ack\n");
+	strcpy(searchMenuString, "[N]ickname search\n[A]ccount search\n[B]ack\n");
 	strcpy(loginAccountString, "Enter your account( or enter \"new\" to register ): ");
 	strcpy(loginPasswordString, "Enter your password: ");
 

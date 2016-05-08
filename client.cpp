@@ -27,8 +27,19 @@ typedef enum
 	REGISTER_PASSWORD,
 	REGISTER_NICKNAME,
 	REGISTER_BIRTHDAY,
-	ONLINE
+
+	ONLINE_MAIN_MENU,
+	ONLINE_ARTICLE_MENU,
+	ONLINE_CHAT_MENU,
+	ONLINE_SEARCH_MENU
 }State;
+
+bool isStateOnline(State state)
+{
+	if(state==ONLINE_MAIN_MENU || state==ONLINE_ARTICLE_MENU || state==ONLINE_CHAT_MENU
+		|| state==ONLINE_SEARCH_MENU) return true;
+	return false;
+}
 
 State state;
 char account[MAXLINE];
@@ -77,12 +88,31 @@ int main (int argc, char **argv)
 			int n = recvfrom(servfd, recvBuffer, MAXLINE, 0, NULL, NULL);
 			recvBuffer[n] = '\0';
 			sendAck(servfd, (struct sockaddr *)&servaddr);
-			if(state == ONLINE)	// already online!
+			if(isStateOnline(state))	// already online!
 			{
 				if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
 				if(fscanf(stdin, "%s", temp) == EOF) perror("fscanf error:");
-				sprintf(sendBuffer, "ONLINE %s %s", account, temp);
-				sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+				char command[100];
+				sscanf(temp, "%s", command);
+				while(state == ONLINE_MAIN_MENU)
+				{
+					sprintf(sendBuffer, "ONLINE_MAIN_MENU %s %s", account, command);
+					n = recvfrom(servfd, recvBuffer, MAXLINE, 0, NULL, NULL);
+					recvBuffer[n] = '\0';
+					sendAck(servfd, (struct sockaddr *)&servaddr);
+				}
+				while(state == ONLINE_ARTICLE_MENU)
+				{
+					sprintf(sendBuffer, "ONLINE_ARTICLE_MENU %s %s", account, command);
+				}
+				while(state == ONLINE_CHAT_MENU)
+				{
+					sprintf(sendBuffer, "ONLINE_CHAT_MENU %s %s", account, command);
+				}
+				while(state == ONLINE_SEARCH_MENU)
+				{
+					sprintf(sendBuffer, "ONLINE_SEARCH_MENU %s %s", account, command);
+				}
 			}
 			else // haven't login
 			{
@@ -122,7 +152,7 @@ int main (int argc, char **argv)
 						state = LOGIN_ACCOUNT;
 					} else {
 						sprintf(recvBuffer, "ONLINE %s %s", account, temp);
-						state = ONLINE;
+						state = ONLINE_MAIN_MENU;
 					}
 					sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
@@ -161,7 +191,7 @@ int main (int argc, char **argv)
 					if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
 					if(fscanf(stdin, "%s", temp) == EOF) perror("fscanf error:");
 					sprintf(sendBuffer, "ONLINE %s %s", account, temp);
-					state = ONLINE;
+					state = ONLINE_MAIN_MENU;
 					sendCommand(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 				}
 			}	
