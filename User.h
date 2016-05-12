@@ -10,7 +10,7 @@ typedef enum
 
 extern char loginAccountString[MAXLINE];
 extern char loginPasswordString[MAXLINE];
-extern char wellcomeString[MAXLINE];
+extern char wellcomeString[MAXLINE*20];
 
 extern char mainMenuString[MAXLINE];
 extern char articleMenuString[MAXLINE];
@@ -55,7 +55,7 @@ public:
 			strcat(sendBuffer, "This is your first log in!");
 		}
 		strcat(sendBuffer, "\n");
-		strcat(sendBuffer, mainMenuString);
+		//strcat(sendBuffer, mainMenuString);
 		time_t rawtime;
 		time(&rawtime);
 		lastLoginTime = localtime(&rawtime);

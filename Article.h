@@ -4,7 +4,7 @@
 #define MAXLINE 2048
 extern char loginAccountString[MAXLINE];
 extern char loginPasswordString[MAXLINE];
-extern char wellcomeString[MAXLINE];
+extern char wellcomeString[MAXLINE*20];
 
 extern char mainMenuString[MAXLINE];
 extern char articleMenuString[MAXLINE];
@@ -13,7 +13,7 @@ extern char searchMenuString[MAXLINE];
 typedef struct Comment {
 	User *author;
 	char content[2000];
-};
+}Comment;
 
 class Article
 {

@@ -66,9 +66,9 @@ int main (int argc, char **argv)
 {
 	setbuf(stdout, NULL);
 	int servfd;
-	char recvBuffer[MAXLINE];
+	char recvBuffer[MAXLINE+1];
 	char sendBuffer[MAXLINE];
-	char temp[MAXLINE];
+	char temp[MAXLINE+1];
 	struct sockaddr_in servaddr;
 	if(argc!=3){
 		fprintf(stderr, "Usage: ./<executable file> <server IP> <server port>\n");
@@ -101,9 +101,35 @@ int main (int argc, char **argv)
 			int n = recvfrom(servfd, recvBuffer, MAXLINE, 0, NULL, NULL);
 			recvBuffer[n] = '\0';
 			sendAck(servfd, (struct sockaddr *)&servaddr);
+			
+			
+			// first scan whether it's a huge send from server 
+			if(strncmp(recvBuffer, "Going to sendHuge: ", strlen("Going to sendHuge: ")) == 0) {
+				// if it is, record the times they will send
+				int times, n;
+				sscanf(recvBuffer, "Going to sendHuge: %d", &times);
+				
+				// and replace recvBuffer with second package
+				n = recvfrom(servfd, recvBuffer, MAXLINE, 0, NULL, NULL);
+				recvBuffer[n] = '\0';
+				sendAck(servfd, (struct sockaddr *)&servaddr);
+				if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error");
+				
+				for(int i=1 ; i<times ; i++) {
+					n = recvfrom(servfd, temp, MAXLINE, 0, NULL, NULL);
+					temp[n] = '\0';
+					sendAck(servfd, (struct sockaddr *)&servaddr);
+
+					if(fprintf(stdout, "%s", temp) == EOF) perror("fprintf error");
+				}
+				
+			} else {
+				// if it's not, just put message from server
+				if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error");
+			}
+
 			if(isStateOnline(state))	// already online!
 			{
-				if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error");
 				if(state == ONLINE_WRITING)
 				{
 					char typingBuffer[MAXLINE-50];
@@ -279,8 +305,6 @@ int main (int argc, char **argv)
 			}
 			else // haven't login
 			{
-				// put message from server
-				if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
 				
 				// scanf input from user and store in temp[]
 				if(fgets(temp, sizeof temp, stdin) == NULL) perror("fgets error:");
