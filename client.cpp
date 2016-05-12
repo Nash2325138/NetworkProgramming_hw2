@@ -61,6 +61,7 @@ void receive_print(int udpfd, const struct sockaddr *servaddr_ptr, char *recvBuf
 void sendAck(int udpfd, const struct sockaddr *servaddr_ptr);
 void transFileTo(int udpfd, const struct sockaddr *servaddr_ptr, FILE *fp, int fileSize);
 void receiveFileFrom(int udpfd, const struct sockaddr *servaddr_ptr, FILE *fp, int fileSize);
+void login_changeStage(State *state, char *recvBuffer);
 int main (int argc, char **argv)
 {
 	setbuf(stdout, NULL);
@@ -145,6 +146,13 @@ int main (int argc, char **argv)
 					{
 						
 					}
+					else if(strcmp(command, "D") == 0)
+					{
+						char sure[200];
+						sure[0] = '\0';
+						sscanf(temp, " %*s %s", sure);
+						if(strcmp(sure, "sure") == 0) state = INIT;
+					}
 					else if(strcmp(command, "SA") == 0) {
 
 					}
@@ -220,20 +228,20 @@ int main (int argc, char **argv)
 					sscanf(temp, " %s", command);
 					if(strcmp(command, "LF") == 0) {
 					}
-					else if(strcmp(command, "LC")) {
+					else if(strcmp(command, "LC") == 0) {
 
 					}
-					else if(strcmp(command, "C")) {
+					else if(strcmp(command, "C") == 0) {
 						
 					}
-					else if(strcmp(command, "E")) {
+					else if(strcmp(command, "E") == 0) {
 						
 					}
-					else if(strcmp(command, "B")) {
-						
+					else if(strcmp(command, "B") == 0) {
+						state = ONLINE_MAIN_MENU;
+						sprintf(sendBuffer, "ONLINE_MAIN_MENU %s %s", account, "Back");
 					}
 					else {
-
 					}
 
 					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
@@ -253,14 +261,15 @@ int main (int argc, char **argv)
 					if(strcmp(command, "N") == 0) {
 
 					}
-					else if(strcmp(command, "A")) {
+					else if(strcmp(command, "A") == 0) {
 
 					}
-					else if(strcmp(command, "F")) {
+					else if(strcmp(command, "F") == 0) {
 
 					}
-					else if(strcmp(command, "B")) {
-
+					else if(strcmp(command, "B") == 0) {
+						state = ONLINE_MAIN_MENU;
+						sprintf(sendBuffer, "ONLINE_MAIN_MENU %s %s", account, "Back");
 					}
 					else {
 
@@ -270,67 +279,45 @@ int main (int argc, char **argv)
 			}
 			else // haven't login
 			{
+				// put message from server
 				if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error"); 
-				if(fscanf(stdin, " %s", temp) == EOF) perror("fscanf error:");
+				
+				// scanf input from user and store in temp[]
+				if(fgets(temp, sizeof temp, stdin) == NULL) perror("fgets error:");
+				temp[strlen(temp)-1] = '\0';
+				
+				// change state depending on message received from server 
+				login_changeStage(&state, recvBuffer);
 
-				if(state == INIT)
+				if(state == LOGIN_ACCOUNT)
 				{
-					state = LOGIN_ACCOUNT;
-
 					strcpy(account, temp);	// suppose log in successfully
 					sprintf(sendBuffer, "LOGIN_ACCOUNT %s", temp);
 				}
-				else if(state == LOGIN_ACCOUNT)
-				{
-					if(strncmp(recvBuffer, "Create", 6) == 0) {
-						state = REGISTER_ACCOUNT;
-						strcpy(account, temp);	// if client want to create new account, override the account
-						sprintf(sendBuffer, "REGISTER_ACCOUNT %s", temp);
-					}
-					else {
-						state = LOGIN_PASSWORD;
-						sprintf(sendBuffer, "LOGIN_PASSWORD %s %s", account, temp);
-					}
-				}
 				else if(state == LOGIN_PASSWORD)
 				{
-					if(strncmp(recvBuffer, "Fail", 4) == 0) {
-						sprintf(sendBuffer, "LOGIN_ACCOUNT %s", temp);
-						strcpy(account, temp);
-						state = LOGIN_ACCOUNT;
-					} else {
-						sprintf(sendBuffer, "LOGIN_COMPLETE %s %s", account, temp);
-						state = LOGIN_COMPLETE;
-					}
+					sprintf(sendBuffer, "LOGIN_PASSWORD %s %s", account, temp);
 				}
 				else if(state == REGISTER_ACCOUNT)
 				{
-					if(strncmp(recvBuffer, "------------Account avalible!-----------\n", strlen("------------Account avalible!-----------\n")) == 0) {
-						sprintf(sendBuffer, "REGISTER_PASSWORD %s %s", account, temp);
-						state = REGISTER_PASSWORD;
-					} else if(strncmp(recvBuffer, "--------------Account used!-------------\n", strlen("--------------Account used!-------------\n")) == 0) {
-						sprintf(sendBuffer, "REGISTER_ACCOUNT %s", temp);
-						strcpy(account, temp);	// if account is used, override the account
-					}
+					strcpy(account, temp);	// if client want to create new account, override the account
+					sprintf(sendBuffer, "REGISTER_ACCOUNT %s", temp);
 				}
 				else if(state == REGISTER_PASSWORD)
 				{
-					sprintf(sendBuffer, "REGISTER_NICKNAME %s %s", account, temp);
-					state = REGISTER_NICKNAME;
+					sprintf(sendBuffer, "REGISTER_PASSWORD %s %s", account, temp);
 				}
 				else if(state == REGISTER_NICKNAME)
 				{
-					sprintf(sendBuffer, "REGISTER_BIRTHDAY %s %s", account, temp);
-					state = REGISTER_BIRTHDAY;
+					sprintf(sendBuffer, "REGISTER_NICKNAME %s %s", account, temp);
 				}
 				else if(state == REGISTER_BIRTHDAY)
 				{
-					sprintf(sendBuffer, "LOGIN_COMPLETE %s", account);
-					state = LOGIN_COMPLETE;
+					sprintf(sendBuffer, "REGISTER_BIRTHDAY %s %s", account, temp);
 				}
 				else if(state == LOGIN_COMPLETE)
 				{
-					sprintf(sendBuffer, "ONLINE_MAIN_MENU %s", account);
+					sprintf(sendBuffer, "LOGIN_COMPLETE %s", account);
 					state = ONLINE_MAIN_MENU;
 				}
 				sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
@@ -421,4 +408,52 @@ void receiveFileFrom(int udpfd, const struct sockaddr *servaddr_ptr, FILE *fp, i
 
 	}
 	//fprintf(stdout, "receive finish\n");
+}
+void login_changeStage(State *state, char *recvBuffer)
+{
+	if(*state == INIT)
+	{
+		*state = LOGIN_ACCOUNT;
+	}
+	else if(*state == LOGIN_ACCOUNT)
+	{
+		if(strncmp(recvBuffer, "Create", 6) == 0) {
+			*state = REGISTER_ACCOUNT;
+		}
+		else {
+			*state = LOGIN_PASSWORD;
+		}
+	}
+	else if(*state == LOGIN_PASSWORD)
+	{
+		if(strncmp(recvBuffer, "Fail", 4) == 0) {
+			*state = LOGIN_ACCOUNT;
+		} else {
+			*state = LOGIN_COMPLETE;
+		}
+	}
+	else if(*state == REGISTER_ACCOUNT)
+	{
+		if(strncmp(recvBuffer, "------------Account avalible!-----------\n", strlen("------------Account avalible!-----------\n")) == 0) {
+			*state = REGISTER_PASSWORD;
+		} else if(strncmp(recvBuffer, "--------------Account used!-------------\n", strlen("--------------Account used!-------------\n")) == 0) {
+		
+		}
+	}
+	else if(*state == REGISTER_PASSWORD)
+	{
+		*state = REGISTER_NICKNAME;
+	}
+	else if(*state == REGISTER_NICKNAME)
+	{
+		*state = REGISTER_BIRTHDAY;
+	}
+	else if(*state == REGISTER_BIRTHDAY)
+	{
+		*state = LOGIN_COMPLETE;
+	}
+	else if(*state == LOGIN_COMPLETE)
+	{
+		// change state immediately when it finish sending message after state = LOGIN_COMPLETE
+	}
 }

@@ -10,6 +10,11 @@ extern char mainMenuString[MAXLINE];
 extern char articleMenuString[MAXLINE];
 extern char chatMenuString[MAXLINE];
 extern char searchMenuString[MAXLINE];
+typedef struct Comment {
+	User *author;
+	char content[2000];
+};
+
 class Article
 {
 public:
@@ -22,6 +27,8 @@ public:
 	char published_IP[INET_ADDRSTRLEN];
 	int published_port;
 	struct tm *published_time;
+
+	std::vector<User *> likers;
 
 	Article(User *_author, struct sockaddr_in * cliaddr_in, int ID_counter, char * _title, char * _content)
 	{
@@ -45,5 +52,4 @@ public:
 		strcat(sendBuffer, temp);
 	}
 };
-
 #endif

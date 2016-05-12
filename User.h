@@ -27,6 +27,7 @@ public:
 	struct tm* registerTime;
 	struct tm* lastLoginTime;
 	UserState state;
+	struct sockaddr_in cliaddr_in;
 
 	char bufferdArticle[200000];
 	char ba_title[100];
@@ -59,6 +60,10 @@ public:
 		time(&rawtime);
 		lastLoginTime = localtime(&rawtime);
 		this->state = ONLINE;
+	}
+	void update_connectionInformation(struct sockaddr_in * _cliaddr_in)
+	{
+		this->cliaddr_in = (* _cliaddr_in);
 	}
 	void catProfileToBuffer(char *sendBuffer)
 	{

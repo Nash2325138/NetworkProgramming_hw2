@@ -41,10 +41,10 @@ void sendOne(int udpfd, char* sendBuffer, const struct sockaddr *cliaddr_ptr);
 
 void initialString()
 {
-	strcpy(mainMenuString, "[SP]Show Profile\n[MP]Modify Profile\n[D]elete account\n[SA]Show Article\n[E]nter article <article number>\n[A]dd article <title>\n[C]hat\n[S]earch\n[L]ogout\n[H]elp commands\n");
-	strcpy(articleMenuString, "[L]ike\n[C]omment <\"put your comment here\">\n[B]ack\n");
-	strcpy(chatMenuString, "[LF]List Friends\n[LC]List Chat room\n[C]reate chat room\n[E]nter chat room <chat room number>\n[B]ack\n");
-	strcpy(searchMenuString, "[N]ickname search <nickname>\n[A]ccount search <account>\n[B]ack\n");
+	strcpy(mainMenuString, "  [SP]Show Profile\n  [MP]Modify Profile <[P]assword / [N]ickname / [B]irthday> <new content>\n  [D]elete account\n  [SA]Show Article\n  [E]nter article <article number>\n  [A]dd article <title>\n  [C]hat\n  [S]earch\n  [L]ogout\n  [H]elp commands\n");
+	strcpy(articleMenuString, "  [L]ike\n  [C]omment <\"put your comment here\">\n  [B]ack\n");
+	strcpy(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room\n  [E]nter chat room <chat room number>\n  [B]ack\n");
+	strcpy(searchMenuString, "  [N]ickname search <nickname>\n  [A]ccount search <account>\n  [B]ack\n");
 	
 	strcpy(loginAccountString, "Enter your account( or enter \"new\" to register ): ");
 	strcpy(loginPasswordString, "Enter your password: ");
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 			}
 			else if(strcmp(status, "ONLINE_MAIN_MENU") == 0)
 			{
-				// [SP]Show Profile [MP]Modify Profile [D]elete account [SA]Show Article [E]nter article <article number>
+				// [SP]Show Profile [MP]Modify Profile <[P]assword / [N]ickname / [B]irthday> <new content> [D]elete account [SA]Show Article [E]nter article <article number>
 				// [A]dd article <title> [C]hat [S]earch [L]ogout [H]elp commands
 				char command[200];
 				char account[200];
@@ -144,15 +144,41 @@ int main(int argc, char **argv)
 				}
 				else if(strcmp(command, "MP") == 0)
 				{
-					
+					char target;
+					char content[200];
+					content[0] = '\0';
+					sscanf(recvBuffer, "ONLINE_MAIN_MENU %*s %*s %c %s", &target, content);
+					if(strlen(content)==0) sprintf(sendBuffer, "Please enter something after '%c'\n", target);
+					else {
+						bool valid = true;
+						switch(target) {
+							case'P': strcpy( accountMap.at(cppAccount)->password, content ); break;
+							case'N': strcpy( accountMap.at(cppAccount)->nickname, content ); break;
+							case'B': strcpy( accountMap.at(cppAccount)->birthday, content ); break;
+							default: valid = false;
+						}
+						if(valid) sprintf(sendBuffer, "Your personal profile has been successfully updated!\n");
+						else sprintf(sendBuffer, "There's no option '%c' to modify your profile\n", target);
+					}
+
 				}
 				else if(strcmp(command, "D") == 0)
 				{
-					
+					char sure[200];
+					sure[0] = '\0';
+					sscanf(recvBuffer, "ONLINE_MAIN_MENU %*s %*s %s", sure);
+					if(strcmp(sure, "sure")==0) {
+						sprintf(sendBuffer, "Deleting...");
+						delete accountMap.at(cppAccount);
+						accountMap.erase(cppAccount);
+						strcat(sendBuffer, "finished.\n");
+						strcat(sendBuffer, loginAccountString);
+					}
+					else sprintf(sendBuffer, "type \"D sure\" to make sure you are going to delete this account.\n");
 				}
 				else if(strcmp(command, "SA") == 0)
 				{
-					sprintf(sendBuffer, "        ID|                Title|          Author|                        Time\n");
+					sprintf(sendBuffer, "        ID|                Title|          Author|                       Time|\n");
 					for(unsigned int i=0 ; i<articleList.size() ; i++)
 					{
 						char temp[500];
@@ -197,7 +223,7 @@ int main(int argc, char **argv)
 				}
 				else if(strcmp(command, "L") == 0)
 				{
-					sprintf(sendBuffer, "Good Bye~\n");	
+					sprintf(sendBuffer, "Good Bye~\nEnter your account( or enter \"new\" to register ): ");	
 				}
 				else if(strcmp(command, "H") == 0 || strcmp(command, "Back") == 0)
 				{
@@ -390,6 +416,7 @@ int main(int argc, char **argv)
 					}
 					strcpy(sendBuffer, "\n");
 					accountMap.at(cppTempString)->catWellcomeToBuffer(sendBuffer);
+					accountMap.at(cppTempString)->update_connectionInformation(&cliaddr_in);
 				}
 				sendOne(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
