@@ -53,6 +53,7 @@ int getFileSize(FILE *file)
 
 State state;
 char account[MAXLINE];
+int articleID;
 //void dg_cli(FILE *fp, int udpfd, const struct sockaddr *servaddr_ptr, socklen_t servlen);
 //void tcp_cli(FILE *fp, int serverfd);
 
@@ -135,12 +136,12 @@ int main (int argc, char **argv)
 					char typingBuffer[MAXLINE-50];
 					while(true)
 					{
-						if(feof(stdin)) break;
 						fgets(typingBuffer, sizeof(typingBuffer), stdin);
 						if(feof(stdin)) break;
 						sprintf(sendBuffer, "ONLINE_WRITING %s %s", account, typingBuffer);
 						sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 					}
+					clearerr(stdin);
 					printf("break out\n");
 					sprintf(sendBuffer, "END_WRITING %s", account);
 					state = ONLINE_MAIN_MENU;
@@ -184,6 +185,7 @@ int main (int argc, char **argv)
 					}
 					else if(strcmp(command, "E") == 0) {
 						state = ONLINE_ARTICLE_MENU;
+						sscanf(temp, "ONLINE_MAIN_MENU E %d", &articleID);
 					}
 					else if(strcmp(command, "A") == 0) {
 						state = ONLINE_WRITING;
@@ -214,17 +216,20 @@ int main (int argc, char **argv)
 						continue;
 					}
 
-					// [L]ike [C]omment <\"put your command here\">  [B]ack
+					//[L]ike [W]ho likes the article [C]omment <\"put your command here\">  [B]ack
 
 					// get input line from stdin
 					fgets(temp, sizeof(temp), stdin);
 					temp[strlen(temp)] = '\0';	// replace '\n'
-					sprintf(sendBuffer, "ONLINE_ARTICLE_MENU %s %s", account, temp);
+					sprintf(sendBuffer, "ONLINE_ARTICLE_MENU %s %d %s", account, articleID, temp);
 					
 					// state change
 					char command[100];
 					sscanf(temp, " %s", command);
 					if(strcmp(command, "L") == 0) {
+
+					}
+					else if(strcmp(command, "W") == 0) {
 
 					}
 					else if(strcmp(command, "C") == 0) {

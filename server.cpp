@@ -44,7 +44,7 @@ void sendHuge(int udpfd, char* sendBuffer, const struct sockaddr *cliaddr_ptr);
 void initialString()
 {
 	strcpy(mainMenuString, "  [SP]Show Profile\n  [MP]Modify Profile <[P]assword / [N]ickname / [B]irthday> <new content>\n  [D]elete account\n  [SA]Show Article\n  [E]nter article <article number>\n  [A]dd article <title>\n  [C]hat\n  [S]earch\n  [L]ogout\n  [H]elp commands\n");
-	strcpy(articleMenuString, "  [L]ike\n  [C]omment <\"put your comment here\">\n  [B]ack\n");
+	strcpy(articleMenuString, "  [L]ike\n  [W]ho likes the article\n  [C]omment <\"put your comment here\">\n  [EA]Edit Article\n  [DA]Delete Article\n  [EC]Edit Comment <number> <content>\n  [DC]Delete Command <number>\n  [B]ack\n");
 	strcpy(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room\n  [E]nter chat room <chat room number>\n  [B]ack\n");
 	strcpy(searchMenuString, "  [N]ickname search <nickname>\n  [A]ccount search <account>\n  [B]ack\n");
 	
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 					{
 						char temp[500];
 						sprintf(temp, "%10d %21s %16s %28s", articleList[i]->uniquedID, articleList[i]->title,
-								 articleList[i]->author->account, asctime(articleList[i]->published_time));
+								 articleList[i]->author->account, asctime(&articleList[i]->published_time));
 						strcat(sendBuffer, temp);
 					}
 				}
@@ -225,6 +225,7 @@ int main(int argc, char **argv)
 				else if(strcmp(command, "L") == 0)
 				{
 					sprintf(sendBuffer, "Good Bye~\nEnter your account( or enter \"new\" to register ): ");	
+					accountMap.at(cppAccount)->state = OFFLINE;
 				}
 				else if(strcmp(command, "H") == 0 || strcmp(command, "Back") == 0)
 				{
@@ -239,22 +240,54 @@ int main(int argc, char **argv)
 			}
 			else if(strcmp(status, "ONLINE_ARTICLE_MENU") == 0)
 			{
-				//[L]ike [C]omment <\"put your command here\">  [B]ack
-				
-				sscanf(recvBuffer, "ONLINE_ARTICLE_MENU %s %s", account, command);
-				std::string cppAccount(account);
-				if(strcmp(command, "L") == 0) {
-
+				// [L]ike [W]ho likes the article [C]omment <\"put your command here\"> [EA]Edit Article  [DA]Delete Article
+				// [EC]Edit Comment <number> <content>  [DC]Delete Command <number>  [B]ack
+				char desired_articleID[20];
+				unsigned int i;
+				sscanf(recvBuffer, "ONLINE_ARTICLE_MENU %s %s %s", account, desired_articleID, command);
+				for(i=0 ; i<articleList.size() ; i++) {
+					if(articleList[i]->uniquedID == atoi(desired_articleID) ) break;
 				}
-				else if(strcmp(command, "C")) {
-
-				}
-				else if(strcmp(command, "B")) { // never use
-					strcpy(sendBuffer, mainMenuString);
+				if(i == articleList.size()) {
+					sprintf(sendBuffer, "    No such article whose ID == %s\n", desired_articleID);
 				}
 				else {
-					sprintf(sendBuffer, "Invalid command: %s\n", command);
-					strcat(sendBuffer, articleMenuString);
+					std::string cppAccount(account);
+					if(strcmp(command, "L") == 0) {
+						articleList[i]->addLiker( accountMap.at(cppAccount) );
+						strcpy(sendBuffer, "\n\n\n");
+						articleList[i]->catArticleTobuffer(sendBuffer);
+					}
+					else if(strcmp(command, "W") == 0) {
+						sendBuffer[0] = '\0';
+						articleList[i]->catLikers( sendBuffer );
+					}
+					else if(strcmp(command, "C") == 0) {
+						articleList[i]->addComment( accountMap.at(cppAccount), 
+							recvBuffer + strlen("ONLINE_ARTICLE_MENU") + 3 + strlen(account) + strlen(desired_articleID) + strlen(command));
+
+						strcpy(sendBuffer, "\n\n\n");
+						articleList[i]->catArticleTobuffer(sendBuffer);
+					}
+					else if(strcmp(command, "EA") == 0) {
+						
+					}
+					else if(strcmp(command, "DA") == 0) {
+
+					}
+					else if(strcmp(command, "EC") == 0) {
+
+					}
+					else if(strcmp(command, "DC") == 0) {
+						
+					}
+					else if(strcmp(command, "B") == 0) { // never use
+						strcpy(sendBuffer, mainMenuString);
+					}
+					else {
+						sprintf(sendBuffer, "Invalid command: %s\n", command);
+						strcat(sendBuffer, articleMenuString);
+					}
 				}
 				sendHuge(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
@@ -267,16 +300,16 @@ int main(int argc, char **argv)
 				if(strcmp(command, "LF") == 0) {
 
 				}
-				else if(strcmp(command, "LC")) {
+				else if(strcmp(command, "LC") == 0) {
 
 				}
-				else if(strcmp(command, "C")) {
+				else if(strcmp(command, "C") == 0) {
 					
 				}
-				else if(strcmp(command, "E")) {
+				else if(strcmp(command, "E") == 0) {
 					
 				}
-				else if(strcmp(command, "B")) {
+				else if(strcmp(command, "B") == 0) {
 					
 				}
 				else {
@@ -294,13 +327,13 @@ int main(int argc, char **argv)
 				if(strcmp(command, "N") == 0) {
 
 				}
-				else if(strcmp(command, "A")) {
+				else if(strcmp(command, "A") == 0) {
 
 				}
-				else if(strcmp(command, "F")) {
+				else if(strcmp(command, "F") == 0) {
 
 				}
-				else if(strcmp(command, "B")) {
+				else if(strcmp(command, "B") == 0) {
 
 				}
 				else {
