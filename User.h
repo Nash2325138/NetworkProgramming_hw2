@@ -32,6 +32,9 @@ public:
 	char bufferdArticle[200000];
 	char ba_title[100];
 
+	std::vector<User *> friends;
+	std::vector<User *> requests;
+
 	User(char *account)
 	{
 		strcpy(this->account, account);

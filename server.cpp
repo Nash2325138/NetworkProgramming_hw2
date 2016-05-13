@@ -46,7 +46,7 @@ void initialString()
 	strcpy(mainMenuString, "  [SP]Show Profile\n  [MP]Modify Profile <[P]assword / [N]ickname / [B]irthday> <new content>\n  [D]elete account\n  [SA]Show Article\n  [E]nter article <article number>\n  [A]dd article <title>\n  [C]hat\n  [S]earch\n  [L]ogout\n  [H]elp commands\n");
 	strcpy(articleMenuString, "  [L]ike\n  [W]ho likes the article\n  [C]omment <\"put your comment here\">\n  [EA]Edit Article\n  [DA_sure]Delete Article\n  [EC]Edit Comment <number> <content>\n  [DC]Delete Command <number>\n  [H]elp\n  [B]ack\n");
 	strcpy(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room\n  [E]nter chat room <chat room number>\n  [B]ack\n");
-	strcpy(searchMenuString, "  [N]ickname search <nickname>\n  [A]ccount search <account>\n  [B]ack\n");
+	strcpy(searchMenuString, "  [N]ickname search <nickname>\n  [A]ccount search <account>\n  [LR]List Request\n  [AR]Accept Request <account>\n  [DR]Delete Request <account>\n  [RF]Remove Friend <account>\n  [B]ack\n");
 	
 	strcpy(loginAccountString, "Enter your account( or enter \"new\" to register ): ");
 	strcpy(loginPasswordString, "Enter your password: ");
@@ -388,25 +388,56 @@ int main(int argc, char **argv)
 			}
 			else if(strcmp(status, "ONLINE_SEARCH_MENU") == 0)
 			{
-				// [N]ickname search <nickname> [A]ccount search <account> [F]riend <account> [B]ack
-				
+				// [N]ickname search <nickname> [A]ccount search <account> [AF]Add Friend <account> [B]ack
+				// [LR]List Request [AR]Accept Request <account> [DR]Delete Request <account> [RF]Remove Friend <account>
 				sscanf(recvBuffer, "ONLINE_SEARCH_MENU %s %s", account, command);
 				std::string cppAccount(account);
-				if(strcmp(command, "N") == 0) {
-
-				}
-				else if(strcmp(command, "A") == 0) {
-
-				}
-				else if(strcmp(command, "F") == 0) {
-
-				}
-				else if(strcmp(command, "B") == 0) {
+				
+				if(strcmp(command, "LR") == 0) {
 
 				}
 				else {
-					sprintf(sendBuffer, "Invalid command: %s\n", command);
-					strcat(sendBuffer, searchMenuString);
+					char target[200];
+					sscanf(recvBuffer, "%*s %*s %*s %s", target);
+					std::map<std::string, User *>::iterator iter;
+					sendBuffer[0] = '\0';
+					if(strcmp(command, "N") == 0) {
+						strcpy(sendBuffer, "Search result: ");
+						for( iter = accountMap.begin() ; iter != accountMap.end() ; iter++) {
+							if(strncmp( iter->second->nickname, target, strlen(target) ) == 0) {
+								strcat(sendBuffer, iter->second->nickname);
+								strcat(sendBuffer, " ");
+							}
+						}
+					}
+					else if(strcmp(command, "A") == 0) {
+						strcpy(sendBuffer, "Search result: ");
+						for( iter = accountMap.begin() ; iter != accountMap.end() ; iter++) {
+							if(strncmp( iter->second->account, target, strlen(target) ) == 0) {
+								strcat(sendBuffer, iter->second->account);
+								strcat(sendBuffer, " ");
+							}
+						}
+					}
+					else if(strcmp(command, "AF") == 0) {
+
+					}
+					else if(strcmp(command, "B") == 0) {
+
+					}
+					else if(strcmp(command, "AR") == 0) {
+
+					}
+					else if(strcmp(command, "DR") == 0) {
+
+					}
+					else if(strcmp(command, "RF") == 0) {
+
+					}
+					else {
+						sprintf(sendBuffer, "Invalid command: %s\n", command);
+						strcat(sendBuffer, searchMenuString);
+					}
 				}
 				sendHuge(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
