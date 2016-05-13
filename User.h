@@ -8,7 +8,7 @@ typedef enum
 	ONLINE
 }UserState;
 
-#include <vector>
+#include <set>
 #include <algorithm>
 
 extern char loginAccountString[MAXLINE];
@@ -35,8 +35,8 @@ public:
 	char bufferdArticle[200000];
 	char ba_title[100];
 
-	std::vector<User *> friends;
-	std::vector<User *> requests;
+	std::set<User *> friends;
+	std::set<User *> requests;
 
 	User(char *account)
 	{
@@ -100,18 +100,23 @@ public:
 	}
 	void addRequest(User *requester)
 	{
-		std::vector<User *>::iterator iter = find(requests.begin(), requests.end(), requester);
-		if(iter == requests.end()) return;
-		requests.push_back(requester);
+		//std::set<User *>::iterator iter = find(requests.begin(), requests.end(), requester);
+		std::set<User *>::iterator iter = requests.find(requester);
+		if(iter != requests.end()) return; // if already in 
+		
+		requests.insert(requester);
 	}
-	bool addToFriend(User *target) // return false if this account is not in requests
+	bool addToFriend(User *requester) // return false if this account is not in requests
 	{
-		std::vector<User *>::iterator iter = find(requests.begin(), requests.end(), target);
-		if( iter == requests.end() ) {
-			return false;
-		}
-		friends.push_back(target);
+		std::set<User *>::iterator iter = requests.find(requester);
+		if(iter == requests.end()) return false;
+
+		friends.insert(requester);
 		requests.erase(iter);
+		return true;
+	}
+	bool removeRequest(User *requester)
+	{
 		return true;
 	}
 };

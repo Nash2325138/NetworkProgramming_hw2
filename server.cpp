@@ -450,8 +450,8 @@ int main(int argc, char **argv)
 							sprintf(sendBuffer, "  No such account: %s\n", target);
 						}
 					}
-					else if(strcmp(command, "DR") == 0) {
-
+					else if(strcmp(command, "DR") == 0) { // Delete Request <account>
+						
 					}
 					else if(strcmp(command, "RF") == 0) {
 
