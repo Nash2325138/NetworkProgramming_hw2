@@ -315,9 +315,36 @@ int main(int argc, char **argv)
 					}
 					else if(strcmp(command, "EC") == 0) {
 						// [EC]Edit Comment <number> <content>
+						char numberString[20];
+						int number;
+						sscanf(recvBuffer, "%*s %*s %*s %*s %s", numberString);
+						number = atoi(numberString);
+						char *getStart = recvBuffer + strlen("ONLINE_ARTICLE_MENU") + 5 
+								  + strlen(account) + strlen(desired_articleID) + strlen(command) + strlen(numberString);
+
+						if(number > (int)articleList[i]->comments.size() || number < 0) {
+							sprintf(sendBuffer, "No such comment number: %d\n", number);
+						} else if( strcmp( articleList[i]->comments[number-1]->author->account, account) != 0) {
+							sprintf(sendBuffer, "Permission denied.\n");
+						} else {
+							strcpy( articleList[i]->comments[number-1]->content, getStart);
+							articleList[i]->comments[number-1]->content[strlen(getStart)-1] = '\0';
+							sprintf(sendBuffer, "Comment successfully modified.\n");
+						}
 					}
 					else if(strcmp(command, "DC") == 0) {
 						// [DC]Delete Command <number>
+						int number;
+						sscanf(recvBuffer, "%*s %*s %*s %*s %d", &number);
+						
+						if(number > (int)articleList[i]->comments.size() || number < 0) {
+							sprintf(sendBuffer, "No such comment number: %d\n", number);
+						} else if( strcmp( articleList[i]->comments[number-1]->author->account, account) != 0) {
+							sprintf(sendBuffer, "Permission denied.\n");
+						} else {
+							articleList[i]->comments.erase(articleList[i]->comments.begin() + number - 1);
+							sprintf(sendBuffer, "Comment successfully deleted.\n");
+						}
 					}
 					else if(strcmp(command, "H") == 0) {
 						strcpy(sendBuffer, articleMenuString);
