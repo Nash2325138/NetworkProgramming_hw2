@@ -24,6 +24,7 @@
 
 #include "User.h"
 #include "Article.h"
+#include "ChatRoom.h"
 
 #define MAXLINE 2048
 
@@ -35,6 +36,7 @@ char mainMenuString[MAXLINE];
 char articleMenuString[MAXLINE];
 char chatMenuString[MAXLINE];
 char searchMenuString[MAXLINE];
+char chatRoomMenuString[MAXLINE];
 
 void sendAck(int udpfd, const struct sockaddr *cliaddr_ptr);
 void sendOne(int udpfd, char* sendBuffer, const struct sockaddr *cliaddr_ptr);
@@ -45,9 +47,10 @@ void initialString()
 {
 	strcpy(mainMenuString, "  [SP]Show Profile\n  [MP]Modify Profile <[P]assword / [N]ickname / [B]irthday> <new content>\n  [D]elete account\n  [SA]Show Article\n  [E]nter article <article number>\n  [A]dd article <title>\n  [C]hat\n  [S]earch\n  [L]ogout\n  [H]elp commands\n");
 	strcpy(articleMenuString, "  [L]ike\n  [W]ho likes the article\n  [C]omment <\"put your comment here\">\n  [EA]Edit Article\n  [DA_sure]Delete Article\n  [EC]Edit Comment <number> <content>\n  [DC]Delete Command <number>\n  [H]elp\n  [B]ack\n");
-	strcpy(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room\n  [E]nter chat room <chat room number>\n  [B]ack\n");
+	strcpy(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room\n  [E]nter chat room <chat room number>\n  [H]elp\n  [B]ack\n");
 	strcpy(searchMenuString, "  [N]ickname search <nickname>\n  [A]ccount search <account>\n  [SR]Send friend Request <account> \n  [LR]List Request\n  [AR]Accept Request <account>\n  [DR]Delete Request <account>\n  [RF]Remove Friend <account>\n  [B]ack\n");
-	
+	strcpy(chatRoomMenuString,"  [S]end message <message>\n  [U]pdate chat room\n  [A]dd account <account>\n  [L]eave from this chat room\n  [H]elp\n  [B]ack\n");
+
 	strcpy(loginAccountString, "Enter your account( or enter \"new\" to register ): ");
 	strcpy(loginPasswordString, "Enter your password: ");
 
@@ -378,12 +381,45 @@ int main(int argc, char **argv)
 				else if(strcmp(command, "E") == 0) {
 					
 				}
-				else if(strcmp(command, "B") == 0) {
+				else if(strcmp(command, "B") == 0) { // never use
 					
+				}
+				else if(strcmp(command, "H") == 0) {
+					strcpy(sendBuffer, chatMenuString);
 				}
 				else {
 					sprintf(sendBuffer, "Invalid command: %s\n", command);
 					strcat(sendBuffer, chatMenuString);
+				}
+				sendHuge(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
+			}
+			else if(strcmp(status, "ONLINE_CHAT_ROOM_MENU") == 0)
+			{
+				// [S]end message <message> [U]pdate chat room [A]dd account <account> [L]eave from this chat room [H]elp [B]ack
+				char desired_chatRoomID[20];
+				sscanf(recvBuffer, "ONLINE_CHAT_ROOM_MENU %s %s %s", account, desired_chatRoomID, command);
+				std::string cppAccount(account);
+				if(strcmp(command, "S") == 0) {
+
+				}
+				else if(strcmp(command, "U") == 0) {
+
+				}
+				else if(strcmp(command, "A") == 0) {
+					
+				}
+				else if(strcmp(command, "L") == 0) {
+					
+				}
+				else if(strcmp(command, "B") == 0) { // never use
+					
+				}
+				else if(strcmp(command, "H") == 0) {
+					strcpy(sendBuffer, chatRoomMenuString);
+				}
+				else {
+					sprintf(sendBuffer, "Invalid command: %s\n", command);
+					strcat(sendBuffer, chatRoomMenuString);
 				}
 				sendHuge(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}

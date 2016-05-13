@@ -18,6 +18,7 @@ extern char mainMenuString[MAXLINE];
 extern char articleMenuString[MAXLINE];
 extern char chatMenuString[MAXLINE];
 extern char searchMenuString[MAXLINE];
+extern char charRoomMenuString[MAXLINE];
 
 class User
 {

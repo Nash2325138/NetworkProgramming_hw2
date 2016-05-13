@@ -32,6 +32,7 @@ typedef enum
 	ONLINE_MAIN_MENU,
 	ONLINE_ARTICLE_MENU,
 	ONLINE_CHAT_MENU,
+	ONLINE_CHAT_ROOM_MENU,
 	ONLINE_SEARCH_MENU,
 	ONLINE_WRITING
 }State;
@@ -53,7 +54,7 @@ int getFileSize(FILE *file)
 
 State state;
 char account[MAXLINE];
-int articleID;
+int articleID, chatRoomID;
 //void dg_cli(FILE *fp, int udpfd, const struct sockaddr *servaddr_ptr, socklen_t servlen);
 //void tcp_cli(FILE *fp, int serverfd);
 
@@ -209,7 +210,7 @@ int main (int argc, char **argv)
 				else if(state == ONLINE_ARTICLE_MENU)
 				{
 					// exception
-					if(strncmp(recvBuffer, "    No such article", strlen("    No such article")) == 0){
+					if(strncmp(recvBuffer, "    No such article", strlen("    No such article")) == 0) {
 						state = ONLINE_MAIN_MENU;
 						sprintf(sendBuffer, "ONLINE_MAIN_MENU %s Back", account);
 						sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
@@ -316,6 +317,38 @@ int main (int argc, char **argv)
 					else if(strcmp(command, "B") == 0) {
 						state = ONLINE_MAIN_MENU;
 						sprintf(sendBuffer, "ONLINE_MAIN_MENU %s %s", account, "Back");
+					}
+					else {
+					}
+
+					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+				}
+				else if(state == ONLINE_CHAT_ROOM_MENU)
+				{
+					// [S]end message <message> [U]pdate chat room [A]dd account <account> [L]eave from this chat room [H]elp [B]ack
+
+					// get input line from stdin
+					if(fgets(temp, sizeof(temp), stdin) == NULL) perror("fgets error:");
+					temp[strlen(temp)] = '\0';	// replace '\n'
+					sprintf(sendBuffer, "ONLINE_CHAT_ROOM_MENU %s %d %s", account, chatRoomID, temp);
+
+					// state change
+					char command[100];
+					sscanf(temp, " %s", command);
+					if(strcmp(command, "S") == 0) {
+					}
+					else if(strcmp(command, "U") == 0) {
+
+					}
+					else if(strcmp(command, "A") == 0) {
+						
+					}
+					else if(strcmp(command, "L") == 0) {
+						
+					}
+					else if(strcmp(command, "B") == 0) {
+						state = ONLINE_CHAT_MENU;
+						sprintf(sendBuffer, "ONLINE_CHAT_MENU %s H", account);
 					}
 					else {
 					}

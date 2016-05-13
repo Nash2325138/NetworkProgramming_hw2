@@ -15,6 +15,8 @@ extern char mainMenuString[MAXLINE];
 extern char articleMenuString[MAXLINE];
 extern char chatMenuString[MAXLINE];
 extern char searchMenuString[MAXLINE];
+extern char charRoomMenuString[MAXLINE];
+
 typedef struct Comment {
 	User *author;
 	char content[500];
