@@ -42,6 +42,9 @@ public:
 	}
 	void catWellcomeToBuffer(char *sendBuffer)
 	{
+		time_t rawtime;
+		time(&rawtime);
+
 		strcat(sendBuffer, wellcomeString);
 		strcat(sendBuffer, "Hello ");
 		strcat(sendBuffer, nickname);
@@ -53,12 +56,14 @@ public:
 		}
 		else {
 			strcat(sendBuffer, "This is your first log in!");
+			lastLoginTime = (struct tm *)malloc(sizeof(struct tm));
+			registerTime = (struct tm *)malloc(sizeof(struct tm));
+			(*registerTime) = *(localtime(&rawtime));
 		}
 		strcat(sendBuffer, "\n");
 		//strcat(sendBuffer, mainMenuString);
-		time_t rawtime;
-		time(&rawtime);
-		lastLoginTime = localtime(&rawtime);
+
+		(*lastLoginTime) = *(localtime(&rawtime));
 		this->state = ONLINE;
 	}
 	void update_connectionInformation(struct sockaddr_in * _cliaddr_in)
@@ -70,10 +75,17 @@ public:
 		char temp[20000];
 		snprintf(temp, sizeof(temp), "    Account: %s\n    Password: %s\n    Nickname: %s\n    Birthday: %s\n", account, password, nickname, birthday);
 		strcat(sendBuffer, temp);
+		
+		snprintf(temp, sizeof(temp), "    Register time: %s\n", asctime(registerTime));
+		strcat(sendBuffer, temp);
 	}
 	void newBufferedArticle(char *title)
 	{
 		strcpy(this->ba_title, title);
+		bufferdArticle[0] = '\0';
+	}
+	void cleanBufferedArticle()
+	{
 		bufferdArticle[0] = '\0';
 	}
 	void catBufferdArticle(char *typing)

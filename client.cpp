@@ -216,7 +216,8 @@ int main (int argc, char **argv)
 						continue;
 					}
 
-					//[L]ike [W]ho likes the article [C]omment <\"put your command here\">  [B]ack
+					// [L]ike [W]ho likes the article [C]omment <\"put your command here\"> [EA]Edit Article  [DA]Delete Article
+					// [EC]Edit Comment <number> <content>  [DC]Delete Command <number>  [H]elp  [B]ack
 
 					// get input line from stdin
 					fgets(temp, sizeof(temp), stdin);
@@ -233,6 +234,50 @@ int main (int argc, char **argv)
 
 					}
 					else if(strcmp(command, "C") == 0) {
+
+					}
+					// we need to know the reply of server to determine how to change state
+					else if(strcmp(command, "EA") == 0) {
+						sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+						int n = recvfrom(servfd, recvBuffer, MAXLINE, 0, NULL, NULL);
+						recvBuffer[n] = '\0';
+						sendAck(servfd, (struct sockaddr *)&servaddr);
+
+						// display message from server
+						if(fprintf(stdout, "%s", recvBuffer) == EOF) perror("fprintf error");
+
+						// state change
+						if(strncmp(recvBuffer, "Permission dinied", strlen("Permission dinied")) == 0) {
+							sprintf(sendBuffer, "ONLINE_ARTICLE_MENU %s %d H", account, articleID);
+						} else {
+							char typingBuffer[MAXLINE-1];
+							while(true)
+							{
+								fgets(typingBuffer, sizeof(typingBuffer), stdin);
+								if(feof(stdin)) break;
+								sprintf(sendBuffer, "ONLINE_RE_WRITING %s %d %s", account, articleID, typingBuffer);
+								sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+							}
+							clearerr(stdin);
+							printf("break out\n");
+							sprintf(sendBuffer, "END_RE_WRITING %s %d", account, articleID);
+							state = ONLINE_ARTICLE_MENU;
+
+							sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+							continue;
+						}
+						
+					}
+					else if(strcmp(command, "DA_sure") == 0) {
+						state = ONLINE_MAIN_MENU;
+					}
+					else if(strcmp(command, "EC") == 0) {
+
+					}
+					else if(strcmp(command, "DC") == 0) {
+
+					}
+					else if(strcmp(command, "H") == 0) {
 
 					}
 					else if(strcmp(command, "B") == 0) {

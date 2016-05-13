@@ -44,7 +44,7 @@ void sendHuge(int udpfd, char* sendBuffer, const struct sockaddr *cliaddr_ptr);
 void initialString()
 {
 	strcpy(mainMenuString, "  [SP]Show Profile\n  [MP]Modify Profile <[P]assword / [N]ickname / [B]irthday> <new content>\n  [D]elete account\n  [SA]Show Article\n  [E]nter article <article number>\n  [A]dd article <title>\n  [C]hat\n  [S]earch\n  [L]ogout\n  [H]elp commands\n");
-	strcpy(articleMenuString, "  [L]ike\n  [W]ho likes the article\n  [C]omment <\"put your comment here\">\n  [EA]Edit Article\n  [DA]Delete Article\n  [EC]Edit Comment <number> <content>\n  [DC]Delete Command <number>\n  [B]ack\n");
+	strcpy(articleMenuString, "  [L]ike\n  [W]ho likes the article\n  [C]omment <\"put your comment here\">\n  [EA]Edit Article\n  [DA_sure]Delete Article\n  [EC]Edit Comment <number> <content>\n  [DC]Delete Command <number>\n  [H]elp\n  [B]ack\n");
 	strcpy(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room\n  [E]nter chat room <chat room number>\n  [B]ack\n");
 	strcpy(searchMenuString, "  [N]ickname search <nickname>\n  [A]ccount search <account>\n  [B]ack\n");
 	
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 			{
 				sscanf(recvBuffer, "ONLINE_WRITING %s", account);
 				std::string cppAccount(account);
-				accountMap.at(account)->catBufferdArticle(recvBuffer + strlen("ONLINE_WRITING ") + strlen(account));
+				accountMap.at(cppAccount)->catBufferdArticle(recvBuffer + strlen("ONLINE_WRITING") + strlen(account) + 2);
 				// needs not sending anything to client, just let client keep writing
 			}
 			else if(strcmp(status, "END_WRITING") == 0)
@@ -129,6 +129,33 @@ int main(int argc, char **argv)
 									accountMap.at(cppAccount)->ba_title, accountMap.at(cppAccount)->bufferdArticle) );
 				
 				sprintf(sendBuffer, "Your writing has been successfully pushed to the articles' list.\n");
+				sendHuge(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
+			}
+			else if(strcmp(status, "ONLINE_RE_WRITING") == 0)
+			{
+				char articleID[20];
+				sscanf(recvBuffer, "ONLINE_RE_WRITING %s %s", account, articleID);
+				std::string cppAccount(account);
+				accountMap.at(cppAccount)->catBufferdArticle(recvBuffer + strlen("ONLINE_RE_WRITING") + strlen(account) + strlen(articleID) + 3);
+				// needs not sending anything to client, just let client keep writing
+			}
+			else if(strcmp(status, "END_RE_WRITING") == 0)
+			{
+				int articleID;
+				sscanf(recvBuffer, "END_WRITING %s %d", account, &articleID);
+				std::string cppAccount(account);
+				
+				unsigned int i;
+				for(i=0 ; i<articleList.size() ; i++) {
+					if(articleList[i]->uniquedID == articleID) break;
+				}
+				if(i==articleList.size()) {
+					sprintf(sendBuffer, "no such articleID\n");
+				} else {
+					articleList[i]->edit(&cliaddr_in, accountMap.at(cppAccount)->bufferdArticle);
+					sprintf(sendBuffer, "Your re_writing has been successfully saved.\n");
+				}
+
 				sendHuge(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
 			}
 			else if(strcmp(status, "ONLINE_MAIN_MENU") == 0)
@@ -241,7 +268,7 @@ int main(int argc, char **argv)
 			else if(strcmp(status, "ONLINE_ARTICLE_MENU") == 0)
 			{
 				// [L]ike [W]ho likes the article [C]omment <\"put your command here\"> [EA]Edit Article  [DA]Delete Article
-				// [EC]Edit Comment <number> <content>  [DC]Delete Command <number>  [B]ack
+				// [EC]Edit Comment <number> <content>  [DC]Delete Command <number>  [H]elp [B]ack
 				char desired_articleID[20];
 				unsigned int i;
 				sscanf(recvBuffer, "ONLINE_ARTICLE_MENU %s %s %s", account, desired_articleID, command);
@@ -255,7 +282,7 @@ int main(int argc, char **argv)
 					std::string cppAccount(account);
 					if(strcmp(command, "L") == 0) {
 						articleList[i]->addLiker( accountMap.at(cppAccount) );
-						strcpy(sendBuffer, "\n\n\n");
+						strcpy(sendBuffer, "\n\n\n\n\n\n\n\n\n");
 						articleList[i]->catArticleTobuffer(sendBuffer);
 					}
 					else if(strcmp(command, "W") == 0) {
@@ -264,22 +291,36 @@ int main(int argc, char **argv)
 					}
 					else if(strcmp(command, "C") == 0) {
 						articleList[i]->addComment( accountMap.at(cppAccount), 
-							recvBuffer + strlen("ONLINE_ARTICLE_MENU") + 3 + strlen(account) + strlen(desired_articleID) + strlen(command));
+							recvBuffer + strlen("ONLINE_ARTICLE_MENU") + 4 + strlen(account) + strlen(desired_articleID) + strlen(command));
 
 						strcpy(sendBuffer, "\n\n\n");
 						articleList[i]->catArticleTobuffer(sendBuffer);
 					}
 					else if(strcmp(command, "EA") == 0) {
-						
+						if(strcmp(articleList[i]->author->account, account) == 0 ) {
+							accountMap.at(cppAccount)->cleanBufferedArticle();
+							sprintf(sendBuffer, "You can start writing now:\n");
+						} else {
+							sprintf(sendBuffer, "Permission dinied\n");
+						}
 					}
-					else if(strcmp(command, "DA") == 0) {
-
+					else if(strcmp(command, "DA_sure") == 0) {
+						if(strcmp(articleList[i]->author->account, account) == 0 ) {
+							delete articleList[i];
+							articleList.erase( articleList.begin() + i );
+							sprintf(sendBuffer, "Successfully delete article\n");
+						} else {
+							sprintf(sendBuffer, "Permission dinied\n");
+						}
 					}
 					else if(strcmp(command, "EC") == 0) {
-
+						// [EC]Edit Comment <number> <content>
 					}
 					else if(strcmp(command, "DC") == 0) {
-						
+						// [DC]Delete Command <number>
+					}
+					else if(strcmp(command, "H") == 0) {
+						strcpy(sendBuffer, articleMenuString);
 					}
 					else if(strcmp(command, "B") == 0) { // never use
 						strcpy(sendBuffer, mainMenuString);

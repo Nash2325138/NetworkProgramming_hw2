@@ -56,13 +56,12 @@ public:
 		time(&rawtime);
 		published_time = *( localtime(&rawtime) );
 	}
-	void edit(struct sockaddr_in * cliaddr_in, char * _title, char * _content)
+	void edit(struct sockaddr_in * cliaddr_in, char * _content)
 	{
 		if( inet_ntop(AF_INET, &(cliaddr_in->sin_addr), published_IP, INET_ADDRSTRLEN) <= 0) perror("inet_ntop error");
 		published_port = ntohs(cliaddr_in->sin_port);
 		
 		strcpy(this->content, _content);
-		strcpy(this->title, _title);
 
 		time_t rawtime;
 		time(&rawtime);
@@ -72,10 +71,10 @@ public:
 	{
 		// 
 		char temp[30000];
-		sprintf(temp, "~~~ Article ID: %d ~~~\n~~~ Title: %s ~~~\n~~~ IP:%s ~~~\n~~~ port:%d ~~~\n~~~ Content:\n%s\n", uniquedID, title, published_IP, published_port, content);
+		sprintf(temp, "~~~ Article ID: %d ~~~\n~~~ Title: %s ~~~\n~~~ Content:\n%s\n", uniquedID, title, content);
 		strcat(sendBuffer, temp);
 
-		sprintf(temp, "~~~ %lu people like this ~~~\n", likers.size());
+		sprintf(temp, "---- Published time: %s---- IP: %s\n---- port: %d\n\n~~~ %lu people like this ~~~\n", asctime(&published_time), published_IP, published_port, likers.size());
 		strcat(sendBuffer, temp);
 		
 		strcat(sendBuffer, "~~~ comments ~~~\n");
