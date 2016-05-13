@@ -47,6 +47,12 @@ public:
 		registerTime = lastLoginTime = lastLogoutTime = NULL;
 		state = OFFLINE;
 	}
+	~User()
+	{
+		delete registerTime;
+		delete lastLoginTime;
+		delete lastLogoutTime;
+	}
 	void catWellcomeToBuffer(char *sendBuffer)
 	{
 		time_t rawtime;

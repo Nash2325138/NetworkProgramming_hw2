@@ -95,9 +95,13 @@ int main(int argc, char **argv)
 	// structure to grab client's information
 	struct sockaddr_in cliaddr_in;
 	socklen_t clilen = sizeof cliaddr_in;
+	
 	std::map<std::string, User *> accountMap;
 	std::vector<Article *> articleList;
+	std::vector<ChatRoom *> chatRommList;
+
 	int article_ID_counter = 0;
+	int chatRoom_ID_counter = 0;
 
 	for ( ; ; ) {
 		//printf("for loop begin\n");
@@ -379,7 +383,18 @@ int main(int argc, char **argv)
 					
 				}
 				else if(strcmp(command, "E") == 0) {
-					
+					int desired_chatRoomID;
+					sscanf(recvBuffer, "%*s %*s %*s %d", &desired_chatRoomID);
+					unsigned int i;
+					for(i=0 ; i<chatRommList.size() ; i++) {
+						if(chatRommList[i]->roomID == desired_chatRoomID) {
+							strcpy(sendBuffer, chatRoomMenuString);
+							break;
+						}
+					}
+					if(i == chatRommList.size()) {
+						sprintf(sendBuffer, "    No such room :%d\n", desired_chatRoomID);
+					}
 				}
 				else if(strcmp(command, "B") == 0) { // never use
 					

@@ -20,27 +20,27 @@
 
 typedef enum
 {
-	INIT,
-	LOGIN_ACCOUNT,
-	LOGIN_PASSWORD,
-	REGISTER_ACCOUNT,
-	REGISTER_PASSWORD,
-	REGISTER_NICKNAME,
-	REGISTER_BIRTHDAY,
-	LOGIN_COMPLETE,
+	INIT = 0,
+	LOGIN_ACCOUNT = 1,
+	LOGIN_PASSWORD = 2,
+	REGISTER_ACCOUNT = 3,
+	REGISTER_PASSWORD = 4,
+	REGISTER_NICKNAME = 5,
+	REGISTER_BIRTHDAY = 6,
+	LOGIN_COMPLETE = 7,
 
-	ONLINE_MAIN_MENU,
-	ONLINE_ARTICLE_MENU,
-	ONLINE_CHAT_MENU,
-	ONLINE_CHAT_ROOM_MENU,
-	ONLINE_SEARCH_MENU,
-	ONLINE_WRITING
+	ONLINE_MAIN_MENU = 8,
+	ONLINE_ARTICLE_MENU = 9,
+	ONLINE_CHAT_MENU = 10,
+	ONLINE_CHAT_ROOM_MENU = 11,
+	ONLINE_SEARCH_MENU = 12,
+	ONLINE_WRITING = 13
 }State;
 
 bool isStateOnline(State state)
 {
 	if(state==ONLINE_MAIN_MENU || state==ONLINE_ARTICLE_MENU || state==ONLINE_CHAT_MENU
-		|| state==ONLINE_SEARCH_MENU || state==ONLINE_WRITING) return true;
+		|| state==ONLINE_SEARCH_MENU || state==ONLINE_WRITING || state==ONLINE_CHAT_ROOM_MENU) return true;
 	return false;
 }
 int getFileSize(FILE *file)
@@ -104,6 +104,7 @@ int main (int argc, char **argv)
 			recvBuffer[n] = '\0';
 			sendAck(servfd, (struct sockaddr *)&servaddr);
 			
+			//printf("state: %d\n", state);
 			
 			// first scan whether it's a huge send from server 
 			if(strncmp(recvBuffer, "Going to sendHuge: ", strlen("Going to sendHuge: ")) == 0) {
@@ -312,11 +313,15 @@ int main (int argc, char **argv)
 						
 					}
 					else if(strcmp(command, "E") == 0) {
-						
+						state = ONLINE_CHAT_ROOM_MENU;
+						sscanf(temp, " %*s %d", &chatRoomID);
 					}
 					else if(strcmp(command, "B") == 0) {
 						state = ONLINE_MAIN_MENU;
 						sprintf(sendBuffer, "ONLINE_MAIN_MENU %s %s", account, "Back");
+					}
+					else if(strcmp(command, "H") == 0) {
+						
 					}
 					else {
 					}
@@ -325,6 +330,13 @@ int main (int argc, char **argv)
 				}
 				else if(state == ONLINE_CHAT_ROOM_MENU)
 				{
+					// exception
+					if(strncmp(recvBuffer, "    No such room", strlen("    No such room")) == 0) {
+						state = ONLINE_CHAT_MENU;
+						sprintf(sendBuffer, "ONLINE_CHAT_MENU %s H", account);
+						sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+						continue;
+					}
 					// [S]end message <message> [U]pdate chat room [A]dd account <account> [L]eave from this chat room [H]elp [B]ack
 
 					// get input line from stdin
@@ -349,6 +361,9 @@ int main (int argc, char **argv)
 					else if(strcmp(command, "B") == 0) {
 						state = ONLINE_CHAT_MENU;
 						sprintf(sendBuffer, "ONLINE_CHAT_MENU %s H", account);
+					}
+					else if(strcmp(command, "H") == 0) {
+						
 					}
 					else {
 					}
