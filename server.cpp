@@ -394,7 +394,8 @@ int main(int argc, char **argv)
 				std::string cppAccount(account);
 				
 				if(strcmp(command, "LR") == 0) {
-
+					sendBuffer[0] = '\0';
+					accountMap.at(cppAccount)->catRequests(sendBuffer);
 				}
 				else {
 					char target[200];
@@ -451,9 +452,22 @@ int main(int argc, char **argv)
 						}
 					}
 					else if(strcmp(command, "DR") == 0) { // Delete Request <account>
-						
+						for( iter = accountMap.begin() ; iter != accountMap.end() ; iter++) {
+							if(strcmp( iter->second->account, target ) == 0) {
+								bool result = accountMap.at(cppAccount)->removeRequest(iter->second);
+								if(result == true) {
+									snprintf(sendBuffer, sizeof(sendBuffer), "  Delete success!\n");
+								} else {
+									snprintf(sendBuffer, sizeof(sendBuffer), "  This account: %s didn't send a friend request to you.\n", target);
+								}
+								break;
+							}
+						}
+						if(iter == accountMap.end()) {
+							sprintf(sendBuffer, "  No such account: %s\n", target);
+						}
 					}
-					else if(strcmp(command, "RF") == 0) {
+					else if(strcmp(command, "RF") == 0) { // [RF]Remove Friend <account>
 
 					}
 					else if(strcmp(command, "B") == 0) { // Back, never use

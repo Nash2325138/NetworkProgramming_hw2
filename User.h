@@ -117,7 +117,23 @@ public:
 	}
 	bool removeRequest(User *requester)
 	{
+		std::set<User *>::iterator iter = requests.find(requester);
+		if(iter == requests.end()) return false;
+
+		requests.erase(iter);
 		return true;
+	}
+	void catRequests(char *sendBuffer)
+	{
+		strcat(sendBuffer, "Requesters:");
+		std::set<User *>::iterator iter;
+		char temp[400];
+		for(iter = requests.begin() ; iter != requests.end() ; iter++) {
+			sprintf(temp, " %s(%s)", (*iter)->nickname, (*iter)->account );
+			strcat(sendBuffer, temp);
+		}
+
+		strcat(sendBuffer, "\n");
 	}
 };
 
