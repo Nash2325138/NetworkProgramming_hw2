@@ -8,6 +8,9 @@ typedef enum
 	ONLINE
 }UserState;
 
+#include <vector>
+#include <algorithm>
+
 extern char loginAccountString[MAXLINE];
 extern char loginPasswordString[MAXLINE];
 extern char wellcomeString[MAXLINE*20];
@@ -94,6 +97,22 @@ public:
 	void catBufferdArticle(char *typing)
 	{
 		strcat(bufferdArticle, typing);
+	}
+	void addRequest(User *requester)
+	{
+		std::vector<User *>::iterator iter = find(requests.begin(), requests.end(), requester);
+		if(iter == requests.end()) return;
+		requests.push_back(requester);
+	}
+	bool addToFriend(User *target) // return false if this account is not in requests
+	{
+		std::vector<User *>::iterator iter = find(requests.begin(), requests.end(), target);
+		if( iter == requests.end() ) {
+			return false;
+		}
+		friends.push_back(target);
+		requests.erase(iter);
+		return true;
 	}
 };
 
