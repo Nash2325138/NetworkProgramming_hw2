@@ -252,7 +252,7 @@ int main(int argc, char **argv)
 				else if(strcmp(command, "L") == 0)
 				{
 					sprintf(sendBuffer, "Good Bye~\nEnter your account( or enter \"new\" to register ): ");	
-					accountMap.at(cppAccount)->state = OFFLINE;
+					accountMap.at(cppAccount)->logOut();
 				}
 				else if(strcmp(command, "H") == 0 || strcmp(command, "Back") == 0)
 				{
@@ -366,7 +366,8 @@ int main(int argc, char **argv)
 				sscanf(recvBuffer, "ONLINE_CHAT_MENU %s %s", account, command);
 				std::string cppAccount(account);
 				if(strcmp(command, "LF") == 0) {
-
+					sendBuffer[0] = '\0';
+					accountMap.at(cppAccount)->catFriends(sendBuffer);
 				}
 				else if(strcmp(command, "LC") == 0) {
 
@@ -400,8 +401,10 @@ int main(int argc, char **argv)
 				else {
 					char target[200];
 					sscanf(recvBuffer, "%*s %*s %*s %s", target);
+					std::string targetCppString(target);
 					std::map<std::string, User *>::iterator iter;
 					sendBuffer[0] = '\0';
+
 					if(strcmp(command, "N") == 0) {
 						strcpy(sendBuffer, "  Search result: ");
 						char temp[2000];
@@ -423,7 +426,7 @@ int main(int argc, char **argv)
 						}
 						strcat(sendBuffer, "\n");
 					}
-					else if(strcmp(command, "SR") == 0) { // add friend (send request)
+					else if(strcmp(command, "SR") == 0) { // Send Request <account>
 						for( iter = accountMap.begin() ; iter != accountMap.end() ; iter++) {
 							if(strcmp( iter->second->account, target ) == 0) {
 								iter->second->addRequest(accountMap.at(cppAccount));
@@ -440,6 +443,7 @@ int main(int argc, char **argv)
 							if(strcmp( iter->second->account, target ) == 0) {
 								bool result = accountMap.at(cppAccount)->addToFriend(iter->second);
 								if(result == true) {
+									accountMap.at(targetCppString)->addToFriend(accountMap.at(cppAccount));
 									snprintf(sendBuffer, sizeof(sendBuffer), "  Accept success!\n");
 								} else {
 									snprintf(sendBuffer, sizeof(sendBuffer), "  This account: %s didn't send a friend request to you.\n", target);
@@ -468,7 +472,21 @@ int main(int argc, char **argv)
 						}
 					}
 					else if(strcmp(command, "RF") == 0) { // [RF]Remove Friend <account>
-
+						for( iter = accountMap.begin() ; iter != accountMap.end() ; iter++) {
+							if(strcmp( iter->second->account, target ) == 0) {
+								bool result = accountMap.at(cppAccount)->removeFriend(iter->second);
+								if(result == true) {
+									accountMap.at(targetCppString)->removeFriend(accountMap.at(cppAccount));
+									snprintf(sendBuffer, sizeof(sendBuffer), "  Delete success!\n");
+								} else {
+									snprintf(sendBuffer, sizeof(sendBuffer), "  This account: %s is not your friend.\n", target);
+								}
+								break;
+							}
+						}
+						if(iter == accountMap.end()) {
+							sprintf(sendBuffer, "  No such account: %s\n", target);
+						}
 					}
 					else if(strcmp(command, "B") == 0) { // Back, never use
 

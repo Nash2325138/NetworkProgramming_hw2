@@ -2,11 +2,10 @@
 #define USER_H
 
 #define MAXLINE 2048
-typedef enum
-{
+typedef enum {
 	OFFLINE,
 	ONLINE
-}UserState;
+} UserState;
 
 #include <set>
 #include <algorithm>
@@ -29,6 +28,7 @@ public:
 	char birthday[100];
 	struct tm* registerTime;
 	struct tm* lastLoginTime;
+	struct tm* lastLogoutTime;
 	UserState state;
 	struct sockaddr_in cliaddr_in;
 
@@ -43,7 +43,7 @@ public:
 		strcpy(this->account, account);
 		password[0] = '\0';
 		birthday[0] = '\0';
-		registerTime = lastLoginTime = NULL;
+		registerTime = lastLoginTime = lastLogoutTime = NULL;
 		state = OFFLINE;
 	}
 	void catWellcomeToBuffer(char *sendBuffer)
@@ -71,6 +71,16 @@ public:
 
 		(*lastLoginTime) = *(localtime(&rawtime));
 		this->state = ONLINE;
+	}
+	void logOut()
+	{
+		time_t rawtime;
+		time(&rawtime);	// rawtime == now time
+
+		this->state = OFFLINE;
+		if(lastLogoutTime == NULL) lastLogoutTime = (struct tm *)malloc(sizeof(struct tm));
+		(*lastLogoutTime) = *(localtime(&rawtime));
+		return;
 	}
 	void update_connectionInformation(struct sockaddr_in * _cliaddr_in)
 	{
@@ -125,7 +135,7 @@ public:
 	}
 	void catRequests(char *sendBuffer)
 	{
-		strcat(sendBuffer, "Requesters:");
+		strcat(sendBuffer, "  Requesters:");
 		std::set<User *>::iterator iter;
 		char temp[400];
 		for(iter = requests.begin() ; iter != requests.end() ; iter++) {
@@ -134,6 +144,33 @@ public:
 		}
 
 		strcat(sendBuffer, "\n");
+	}
+	bool removeFriend(User *target)
+	{
+		std::set<User *>::iterator iter = friends.find(target);
+		if(iter == friends.end()) return false;
+
+		friends.erase(target);
+		return true;
+	}
+	void catFriends(char *sendBuffer)
+	{
+		std::set<User *>::iterator iter;
+		time_t rawtime;
+		time(&rawtime);	// get now time
+		char temp[500];
+		
+		for(iter = friends.begin() ; iter != friends.end() ; iter++) {
+			if( (*iter)->state == ONLINE ) {
+				sprintf(temp, "  %s(%s): ONLINE\n", (*iter)->nickname, (*iter)->account);
+			} else {
+
+				double seconds = difftime(rawtime, mktime((*iter)->lastLogoutTime));
+				int minutes = (int)(seconds/60);
+				sprintf(temp, "  %s(%s): OFFLINE for %d minutes\n", (*iter)->nickname, (*iter)->account, minutes);
+			}
+			strcat(sendBuffer, temp);	
+		}
 	}
 };
 
