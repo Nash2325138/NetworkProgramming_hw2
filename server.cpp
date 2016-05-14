@@ -492,9 +492,9 @@ int main(int argc, char **argv)
 					else if(strcmp(command, "AR") == 0) { // Accept Request <account>
 						for( iter = accountMap.begin() ; iter != accountMap.end() ; iter++) {
 							if(strcmp( iter->second->account, target ) == 0) {
-								bool result = accountMap.at(cppAccount)->addToFriend(iter->second);
+								bool result = accountMap.at(cppAccount)->acceptRequest(iter->second);
 								if(result == true) {
-									accountMap.at(targetCppString)->addToFriend(accountMap.at(cppAccount));
+									accountMap.at(targetCppString)->addFriend(accountMap.at(cppAccount));
 									snprintf(sendBuffer, sizeof(sendBuffer), "  Accept success!\n");
 								} else {
 									snprintf(sendBuffer, sizeof(sendBuffer), "  This account: %s didn't send a friend request to you.\n", target);

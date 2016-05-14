@@ -187,7 +187,7 @@ int main (int argc, char **argv)
 					}
 					else if(strcmp(command, "E") == 0) {
 						state = ONLINE_ARTICLE_MENU;
-						sscanf(temp, "ONLINE_MAIN_MENU E %d", &articleID);
+						sscanf(temp, "E %d", &articleID);
 					}
 					else if(strcmp(command, "A") == 0) {
 						state = ONLINE_WRITING;
@@ -413,7 +413,7 @@ int main (int argc, char **argv)
 
 				if(state == LOGIN_ACCOUNT)
 				{
-					strcpy(account, temp);	// suppose log in successfully
+					sscanf(temp, "%s", account)	// suppose log in successfully
 					sprintf(sendBuffer, "LOGIN_ACCOUNT %s", temp);
 				}
 				else if(state == LOGIN_PASSWORD)
@@ -422,7 +422,7 @@ int main (int argc, char **argv)
 				}
 				else if(state == REGISTER_ACCOUNT)
 				{
-					strcpy(account, temp);	// if client want to create new account, override the account
+					sscanf(temp, "%s", account);	// if client want to create new account, override the account
 					sprintf(sendBuffer, "REGISTER_ACCOUNT %s", temp);
 				}
 				else if(state == REGISTER_PASSWORD)

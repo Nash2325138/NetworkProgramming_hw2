@@ -123,14 +123,18 @@ public:
 		
 		requests.insert(requester);
 	}
-	bool addToFriend(User *requester) // return false if this account is not in requests
+	bool acceptRequest(User *requester) // return false if this account is not in requests
 	{
 		std::set<User *>::iterator iter = requests.find(requester);
 		if(iter == requests.end()) return false;
 
-		friends.insert(requester);
+		this->addFriend(requester);
 		requests.erase(iter);
 		return true;
+	}
+	void addFriend(User *target)
+	{
+		friends.insert(target);
 	}
 	bool removeRequest(User *requester)
 	{
