@@ -338,7 +338,7 @@ int main (int argc, char **argv)
 						sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
 						continue;
 					}
-					// [S]end message <message> [U]pdate chat room [A]dd account <account> [L]eave from this chat room [H]elp [B]ack
+					// [S]end message <message> [U]pdate chat room [W]ho is here [A]dd account <account> [L]eave from this chat room [H]elp [B]ack
 
 					// get input line from stdin
 					if(fgets(temp, sizeof(temp), stdin) == NULL) perror("fgets error:");
@@ -357,7 +357,7 @@ int main (int argc, char **argv)
 						
 					}
 					else if(strcmp(command, "L") == 0) {
-						
+						state = ONLINE_CHAT_MENU;
 					}
 					else if(strcmp(command, "B") == 0) {
 						state = ONLINE_CHAT_MENU;

@@ -29,10 +29,26 @@ public:
 		strcpy(this->name, name);
 		members.insert(creator);
 	}
+	~ChatRoom()
+	{
+		for(std::vector<Message *>::iterator iter = messages.begin() ; iter != messages.end() ; iter ++) {
+			delete (*iter);
+		}
+	}
 	bool hasMember(User *target)
 	{
 		if(members.find(target) == members.end()) return false;
 		return true;
+	}
+	void catMembers(char *sendBuffer)
+	{
+		char temp[600];
+		strcat(sendBuffer, "This Chat room has members: ");
+		for(std::set<User *>::iterator iter = members.begin() ; iter != members.end() ; iter++) {
+			sprintf(temp, "  %s(%s)", (*iter)->nickname, (*iter)->account );
+			strcat(sendBuffer, temp);
+		}
+		strcat(sendBuffer, "\n");
 	}
 	void catMessages(char *sendBuffer)
 	{
@@ -41,6 +57,7 @@ public:
 		strcat(sendBuffer, temp);
 		for(std::vector<Message *>::iterator iter = messages.begin() ; iter != messages.end() ; iter++) {
 			sprintf(temp, "  %s: %s\n", (*iter)->author->account, (*iter)->content);
+			strcat(sendBuffer, temp);
 		}
 	}
 	void addMessage(User *writer, char *content)

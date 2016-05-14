@@ -49,7 +49,7 @@ void initialString()
 	strcpy(articleMenuString, "  [L]ike\n  [W]ho likes the article\n  [C]omment <\"put your comment here\">\n  [EA]Edit Article\n  [DA_sure]Delete Article\n  [EC]Edit Comment <number> <content>\n  [DC]Delete Command <number>\n  [H]elp\n  [B]ack\n");
 	strcpy(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room\n  [E]nter chat room <chat room number>\n  [H]elp\n  [B]ack\n");
 	strcpy(searchMenuString, "  [N]ickname search <nickname>\n  [A]ccount search <account>\n  [SR]Send friend Request <account> \n  [LR]List Request\n  [AR]Accept Request <account>\n  [DR]Delete Request <account>\n  [RF]Remove Friend <account>\n  [B]ack\n");
-	strcpy(chatRoomMenuString,"  [S]end message <message>\n  [U]pdate chat room\n  [A]dd account <account>\n  [L]eave from this chat room\n  [H]elp\n  [B]ack\n");
+	strcpy(chatRoomMenuString,"  [S]end message <message>\n  [U]pdate chat room\n  [W]ho is here\n  [A]dd account <account>\n  [L]eave from this chat room\n  [H]elp\n  [B]ack\n");
 
 	strcpy(loginAccountString, "Enter your account( or enter \"new\" to register ): ");
 	strcpy(loginPasswordString, "Enter your password: ");
@@ -424,21 +424,68 @@ int main(int argc, char **argv)
 			}
 			else if(strcmp(status, "ONLINE_CHAT_ROOM_MENU") == 0)
 			{
-				// [S]end message <message> [U]pdate chat room [A]dd account <account> [L]eave from this chat room [H]elp [B]ack
+				// [S]end message <message> [U]pdate chat room [W]ho is here [A]dd account <account> [L]eave from this chat room [H]elp [B]ack
 				char desired_chatRoomID[20];
 				sscanf(recvBuffer, "ONLINE_CHAT_ROOM_MENU %s %s %s", account, desired_chatRoomID, command);
+				
+				int desired_chatRoomID_int = atoi(desired_chatRoomID);
+				std::vector<ChatRoom *>::iterator iter;
+				for(iter = chatRoomList.begin() ; iter != chatRoomList.end() ; iter++) {
+					if( (*iter)->roomID == desired_chatRoomID_int ) break;
+				}
+				if(iter == chatRoomList.end()) {
+					sprintf(sendBuffer, "No such room :%d\n", desired_chatRoomID_int);
+					sendHuge(udpfd, sendBuffer, (struct sockaddr *)&cliaddr_in);
+					continue;
+				}
+
 				std::string cppAccount(account);
 				if(strcmp(command, "S") == 0) {
-
+					char *message = recvBuffer + strlen("ONLINE_CHAT_ROOM_MENU") 
+						+ strlen(account) + strlen(desired_chatRoomID) + strlen(command) + 4;
+					(*iter)->addMessage(accountMap.at(cppAccount), message);
+					sendBuffer[0] = '\0';
+					(*iter)->catMessages(sendBuffer);
 				}
-				else if(strcmp(command, "U") == 0) {
-
+				else if(strcmp(command, "U") == 0) { // [U]pdate chat room
+					sendBuffer[0] = '\0';
+					(*iter)->catMessages(sendBuffer);					
 				}
-				else if(strcmp(command, "A") == 0) {
-					
+				else if(strcmp(command, "W") == 0) { // [W]ho is here 
+					sendBuffer[0] = '\0';
+					(*iter)->catMembers(sendBuffer);
 				}
-				else if(strcmp(command, "L") == 0) {
-					
+				else if(strcmp(command, "A") == 0) { // [A]dd account <account>
+					char target[200];
+					sscanf(recvBuffer, "%*s %*s %*s %*s %s", target);
+					if(strcmp(account, target) == 0) sprintf(sendBuffer, "  You can't add yourself.\n");
+					else {
+						std::map<std::string, User*>::iterator accountIter;
+						for(  accountIter = accountMap.begin() ; accountIter != accountMap.end() ; accountIter++) {
+							if(strcmp( accountIter->second->account, target ) == 0) {
+								if( (*iter)->hasMember(accountIter->second) ) {
+									sprintf(sendBuffer, "  He/She is already in chat room.\n");
+									break;
+								}
+								(*iter)->addMember(accountIter->second);
+								sprintf(sendBuffer, "  Successfully add %s\n", target);
+								break;
+							}
+						}
+						if(accountIter == accountMap.end()) {
+							sprintf(sendBuffer, "  No such account: %s\n", target);
+						}
+					}
+				}
+				else if(strcmp(command, "L") == 0) { // [L]eave from this chat room
+					(*iter)->removeMember(accountMap.at(cppAccount));
+					sendBuffer[0] = '\0';
+					if((*iter)->members.empty()) {
+						delete (*iter);
+						chatRoomList.erase(iter);
+						sprintf(sendBuffer, "The chat room is deleted since no more member is here.\n");
+					}
+					strcat(sendBuffer, chatMenuString);
 				}
 				else if(strcmp(command, "B") == 0) { // never use
 					
