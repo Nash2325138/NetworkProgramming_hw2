@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 	
 	std::map<std::string, User *> accountMap;
 	std::vector<Article *> articleList;
-	std::vector<ChatRoom *> chatRommList;
+	std::vector<ChatRoom *> chatRoomList;
 
 	int article_ID_counter = 0;
 	int chatRoom_ID_counter = 0;
@@ -368,7 +368,7 @@ int main(int argc, char **argv)
 			}
 			else if(strcmp(status, "ONLINE_CHAT_MENU") == 0)
 			{
-				// [LF]List Friends [LC]List Chat room [C]reate chat room [E]nter chat room <chat room number> [B]ack
+				// [LF]List Friends [LC]List Chat room [C]reate chat room <chat room name> [E]nter chat room <chat room number> [B]ack
 				
 				sscanf(recvBuffer, "ONLINE_CHAT_MENU %s %s", account, command);
 				std::string cppAccount(account);
@@ -377,22 +377,36 @@ int main(int argc, char **argv)
 					accountMap.at(cppAccount)->catFriends(sendBuffer);
 				}
 				else if(strcmp(command, "LC") == 0) {
-
+					sprintf(sendBuffer, "        ID|               Room Name|\n");
+					for(unsigned int i=0 ; i<chatRoomList.size() ; i++)
+					{
+						char temp[500];
+						sprintf(temp, "%10d|%24s\n", chatRoomList[i]->roomID, chatRoomList[i]->name);
+						strcat(sendBuffer, temp);
+					}
 				}
 				else if(strcmp(command, "C") == 0) {
-					
+					char *chatRoomName;
+					chatRoomName = recvBuffer + strlen("ONLINE_CHAT_MENU") + strlen(account) + strlen(command) + 3;
+					chatRoomList.push_back(new ChatRoom( chatRoom_ID_counter++, chatRoomName, accountMap.at(cppAccount) ));
+					sprintf(sendBuffer, "Chat room: %s has created! (ID: %d)\n", chatRoomName, chatRoom_ID_counter-1);
 				}
 				else if(strcmp(command, "E") == 0) {
 					int desired_chatRoomID;
 					sscanf(recvBuffer, "%*s %*s %*s %d", &desired_chatRoomID);
 					unsigned int i;
-					for(i=0 ; i<chatRommList.size() ; i++) {
-						if(chatRommList[i]->roomID == desired_chatRoomID) {
-							strcpy(sendBuffer, chatRoomMenuString);
+					for(i=0 ; i<chatRoomList.size() ; i++) {
+						if(chatRoomList[i]->roomID == desired_chatRoomID) {
+							if( chatRoomList[i]->hasMember(accountMap.at(cppAccount)) ) {
+								sendBuffer[0] = '\0';
+								chatRoomList[i]->catMessages(sendBuffer);
+							} else {
+								sprintf(sendBuffer, "    You are not a member of this chat room\n");
+							}
 							break;
 						}
 					}
-					if(i == chatRommList.size()) {
+					if(i == chatRoomList.size()) {
 						sprintf(sendBuffer, "    No such room :%d\n", desired_chatRoomID);
 					}
 				}
@@ -478,15 +492,22 @@ int main(int argc, char **argv)
 						strcat(sendBuffer, "\n");
 					}
 					else if(strcmp(command, "SR") == 0) { // Send Request <account>
-						for( iter = accountMap.begin() ; iter != accountMap.end() ; iter++) {
-							if(strcmp( iter->second->account, target ) == 0) {
-								iter->second->addRequest(accountMap.at(cppAccount));
-								sprintf(sendBuffer, "  A request has sent to %s\n", target);
-								break;
+						if(strcmp(account, target) == 0) sprintf(sendBuffer, "You can't send request to yourself.\n");
+						else {
+							for( iter = accountMap.begin() ; iter != accountMap.end() ; iter++) {
+								if(strcmp( iter->second->account, target ) == 0) {
+									if( accountMap.at(cppAccount)->hasFriend(iter->second) ) {
+										sprintf(sendBuffer, "He/She is already your friend.\n");
+										break;
+									}
+									iter->second->addRequest(accountMap.at(cppAccount));
+									sprintf(sendBuffer, "  A request has sent to %s\n", target);
+									break;
+								}
 							}
-						}
-						if(iter == accountMap.end()) {
-							sprintf(sendBuffer, "  No such account: %s\n", target);
+							if(iter == accountMap.end()) {
+								sprintf(sendBuffer, "  No such account: %s\n", target);
+							}
 						}
 					}
 					else if(strcmp(command, "AR") == 0) { // Accept Request <account>

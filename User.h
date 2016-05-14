@@ -156,6 +156,11 @@ public:
 
 		strcat(sendBuffer, "\n");
 	}
+	bool hasFriend(User *target)
+	{
+		if(friends.find(target) == friends.end()) return false;
+		return true;
+	}
 	bool removeFriend(User *target)
 	{
 		std::set<User *>::iterator iter = friends.find(target);
@@ -170,15 +175,18 @@ public:
 		time_t rawtime;
 		time(&rawtime);	// get now time
 		char temp[500];
-		
+		char temptemp[500];
+		strcat(sendBuffer, "            Nickname|             Account|                    State|\n");
 		for(iter = friends.begin() ; iter != friends.end() ; iter++) {
 			if( (*iter)->state == ONLINE ) {
-				sprintf(temp, "  %s(%s): ONLINE\n", (*iter)->nickname, (*iter)->account);
+				strcpy(temptemp, "ONLINE");
+				sprintf(temp, "%20s|%20s|%25s|\n", (*iter)->nickname, (*iter)->account, temptemp);
 			} else {
 
 				double seconds = difftime(rawtime, mktime((*iter)->lastLogoutTime));
 				int minutes = (int)(seconds/60);
-				sprintf(temp, "  %s(%s): OFFLINE for %d minutes\n", (*iter)->nickname, (*iter)->account, minutes);
+				sprintf(temptemp, "OFFLINE for %d minutes", minutes);
+				sprintf(temp, "%20s|%20s|%25s|\n", (*iter)->nickname, (*iter)->account, temptemp);
 			}
 			strcat(sendBuffer, temp);	
 		}

@@ -298,7 +298,7 @@ int main (int argc, char **argv)
 
 					// get input line from stdin
 					if(fgets(temp, sizeof(temp), stdin) == NULL) perror("fgets error:");
-					temp[strlen(temp)] = '\0';	// replace '\n'
+					temp[strlen(temp)-1] = '\0';	// replace '\n'
 					sprintf(sendBuffer, "ONLINE_CHAT_MENU %s %s", account, temp);
 
 					// state change
@@ -331,7 +331,8 @@ int main (int argc, char **argv)
 				else if(state == ONLINE_CHAT_ROOM_MENU)
 				{
 					// exception
-					if(strncmp(recvBuffer, "    No such room", strlen("    No such room")) == 0) {
+					if(    strncmp(recvBuffer, "    No such room", strlen("    No such room")) == 0
+						|| strncmp(recvBuffer, "    You are not a member of this chat room", strlen("    You are not a member of this chat room")) == 0) {
 						state = ONLINE_CHAT_MENU;
 						sprintf(sendBuffer, "ONLINE_CHAT_MENU %s H", account);
 						sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
@@ -413,7 +414,7 @@ int main (int argc, char **argv)
 
 				if(state == LOGIN_ACCOUNT)
 				{
-					sscanf(temp, "%s", account)	// suppose log in successfully
+					sscanf(temp, "%s", account);	// suppose log in successfully
 					sprintf(sendBuffer, "LOGIN_ACCOUNT %s", temp);
 				}
 				else if(state == LOGIN_PASSWORD)
