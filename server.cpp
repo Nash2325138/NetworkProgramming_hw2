@@ -204,8 +204,44 @@ int main(int argc, char **argv)
 					sscanf(recvBuffer, "ONLINE_MAIN_MENU %*s %*s %s", sure);
 					if(strcmp(sure, "sure")==0) {
 						sprintf(sendBuffer, "Deleting...");
-						delete accountMap.at(cppAccount);
+						User *delete_target = accountMap.at(cppAccount);
+						printf("1");
+						for(unsigned int i=0 ; i < articleList.size() ; i++) {
+							if( articleList[i]->author == delete_target ) {
+								printf("!");
+								delete articleList[i];
+								printf("!");
+								articleList.erase(articleList.begin() + i);
+								printf("!");
+								i--;
+							} else {
+								printf("?");
+								articleList[i]->removeAllComment(delete_target);
+								printf("?");
+								articleList[i]->removeLiker(delete_target);
+								printf("?");
+							}
+						}
+						printf("2");
+						for(std::vector<ChatRoom *>::iterator iter = chatRoomList.begin() ; iter != chatRoomList.end() ; iter++) {
+							if((*iter)->hasMember(delete_target)) {
+								(*iter)->removeMember(delete_target);
+								if((*iter)->members.empty()) {
+									delete (*iter);
+									chatRoomList.erase(iter);
+								}
+							}
+						}
+						printf("3");
+						for(std::map<std::string, User*>::iterator iter = accountMap.begin() ; iter != accountMap.end() ; iter++) {
+							if(iter->second == delete_target) continue;
+							iter->second->removeFriend(delete_target);
+							iter->second->removeRequest(delete_target);
+						}
+						printf("4");
+						delete delete_target;
 						accountMap.erase(cppAccount);
+
 						strcat(sendBuffer, "finished.\n");
 						strcat(sendBuffer, loginAccountString);
 					}
@@ -217,7 +253,7 @@ int main(int argc, char **argv)
 					for(unsigned int i=0 ; i<articleList.size() ; i++)
 					{
 						char temp[500];
-						sprintf(temp, "%10d %21s %16s %28s", articleList[i]->uniquedID, articleList[i]->title,
+						sprintf(temp, "%10d|%21s|%16s|%28s", articleList[i]->uniquedID, articleList[i]->title,
 								 articleList[i]->author->account, asctime(&articleList[i]->published_time));
 						strcat(sendBuffer, temp);
 					}

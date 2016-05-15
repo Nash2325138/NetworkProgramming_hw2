@@ -58,6 +58,12 @@ public:
 		time(&rawtime);
 		published_time = *( localtime(&rawtime) );
 	}
+	~Article()
+	{
+		for(std::vector<Comment *>::iterator iter = comments.begin() ; iter != comments.end() ; iter++) {
+			delete (*iter);
+		}
+	}
 	void edit(struct sockaddr_in * cliaddr_in, char * _content)
 	{
 		if( inet_ntop(AF_INET, &(cliaddr_in->sin_addr), published_IP, INET_ADDRSTRLEN) <= 0) perror("inet_ntop error");
@@ -73,7 +79,7 @@ public:
 	{
 		// 
 		char temp[30000];
-		sprintf(temp, "~~~ Article ID: %d ~~~\n~~~ Title: %s ~~~\n~~~ Content:\n%s\n", uniquedID, title, content);
+		sprintf(temp, "~~~ Author: %s(%s) ~~~\n~~~ Article ID: %d ~~~\n~~~ Title: %s ~~~\n~~~ Content:\n%s\n", author->nickname, author->account, uniquedID, title, content);
 		strcat(sendBuffer, temp);
 
 		sprintf(temp, "---- Published time: %s---- IP: %s\n---- port: %d\n\n~~~ %lu people like this ~~~\n", asctime(&published_time), published_IP, published_port, likers.size());
@@ -92,7 +98,7 @@ public:
 			likers.insert(liker);
 		} else {
 			likers.erase(liker);	
-		}	
+		}
 	}
 	void catLikers(char *sendBuffer)
 	{
@@ -107,6 +113,19 @@ public:
 	void addComment(User *commenter, char *content)
 	{
 		comments.push_back(new Comment(commenter, content));
+	}
+	void removeAllComment(User *target)
+	{
+		for(unsigned int i=0 ; i<comments.size() ; i++) {
+			if(comments[i]->author == target) {
+				comments.erase(comments.begin() + i);
+				i--;
+			}
+		}
+	}
+	void removeLiker(User *liker) // for delete account
+	{
+		if(likers.find(liker) != likers.end()) likers.erase(liker);
 	}
 };
 #endif
