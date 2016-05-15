@@ -223,12 +223,13 @@ int main(int argc, char **argv)
 							}
 						}
 						printf("2");
-						for(std::vector<ChatRoom *>::iterator iter = chatRoomList.begin() ; iter != chatRoomList.end() ; iter++) {
-							if((*iter)->hasMember(delete_target)) {
-								(*iter)->removeMember(delete_target);
-								if((*iter)->members.empty()) {
-									delete (*iter);
-									chatRoomList.erase(iter);
+						for(unsigned int i=0 ; i < chatRoomList.size() ; i++) {
+							if(chatRoomList[i]->hasMember(delete_target)) {
+								chatRoomList[i]->removeMember(delete_target);
+								if(chatRoomList[i]->members.empty()) {
+									delete chatRoomList[i];
+									chatRoomList.erase(chatRoomList.begin() + i);
+									i--;
 								}
 							}
 						}
