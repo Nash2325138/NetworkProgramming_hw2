@@ -54,7 +54,7 @@ void initialString()
 	strcat(articleMenuString, "----------------------------------------------------------------------------------------\n");
 	
 	strcpy(chatMenuString, "----------------------------------------------------------------------------------------\n");
-	strcat(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room\n  [E]nter chat room <chat room number>\n  [H]elp\n  [B]ack\n");
+	strcat(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room <chat room name>\n  [E]nter chat room <chat room number>\n  [H]elp\n  [B]ack\n");
 	strcat(chatMenuString, "----------------------------------------------------------------------------------------\n");
 	
 	strcpy(searchMenuString, "----------------------------------------------------------------------------------------\n");
