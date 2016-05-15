@@ -97,11 +97,12 @@ public:
 	void catLikers(char *sendBuffer)
 	{
 		char temp[500];
-		strcat(sendBuffer, "likers: ");
+		strcat(sendBuffer, "likers:");
 		for(std::set<User *>::iterator it = likers.begin(); it != likers.end() ; it++) {
-			sprintf(temp, "%s ", (*it)->account) ;
+			sprintf(temp, " %s(%s)", (*it)->nickname, (*it)->account) ;
 			strcat(sendBuffer, temp);
 		}
+		strcat(sendBuffer, "\n");
 	}
 	void addComment(User *commenter, char *content)
 	{

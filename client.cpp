@@ -462,11 +462,13 @@ void sendOne(int udpfd, const struct sockaddr *servaddr_ptr, char *command)
 	//printf("sending: %s\n", command);
 	while(true)
 	{
-		sendto(udpfd, command, strlen(command), 0, servaddr_ptr, servlen);
+		//if(rand() % 10 > 2)
+			sendto(udpfd, command, strlen(command), 0, servaddr_ptr, servlen);
 		
 		rset = allset;
 		int maxfd = udpfd;
-		tv.tv_sec = 1;
+		tv.tv_usec = 200000;
+		tv.tv_sec = 0;
 		select(maxfd+1, &rset, NULL, NULL, &tv);
 		if(FD_ISSET(udpfd, &rset))
 		{
@@ -476,7 +478,7 @@ void sendOne(int udpfd, const struct sockaddr *servaddr_ptr, char *command)
 			else fprintf(stderr, "receive something not ack:%s\n", ack);
 		}
 		else {
-			printf("retransmition: %s", command);
+			//printf("retransmition: %s", command);
 		} // needs retransmition
 	}
 }

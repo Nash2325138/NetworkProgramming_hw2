@@ -344,7 +344,7 @@ int main(int argc, char **argv)
 						int number;
 						sscanf(recvBuffer, "%*s %*s %*s %*s %d", &number);
 						
-						if(number > (int)articleList[i]->comments.size() || number < 0) {
+						if(number > (int)articleList[i]->comments.size() || number <= 0) {
 							sprintf(sendBuffer, "No such comment number: %d\n", number);
 						} else if( strcmp( articleList[i]->comments[number-1]->author->account, account) != 0) {
 							sprintf(sendBuffer, "Permission denied.\n");
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
 					for(unsigned int i=0 ; i<chatRoomList.size() ; i++)
 					{
 						char temp[500];
-						sprintf(temp, "%10d|%24s\n", chatRoomList[i]->roomID, chatRoomList[i]->name);
+						sprintf(temp, "%10d|%24s|\n", chatRoomList[i]->roomID, chatRoomList[i]->name);
 						strcat(sendBuffer, temp);
 					}
 				}
@@ -754,11 +754,12 @@ void sendOne(int udpfd, char* sendBuffer, const struct sockaddr *cliaddr_ptr)
 	//printf("before: %s", mainMenuString);
 	while(true)
 	{
-		sendto(udpfd, sendBuffer, strlen(sendBuffer), 0, cliaddr_ptr, servlen);
+		//if(rand() % 10 > 2)
+			sendto(udpfd, sendBuffer, strlen(sendBuffer), 0, cliaddr_ptr, servlen);
 		rset = allset;
 		int maxfd = udpfd;
-		tv.tv_usec = 0;
-		tv.tv_sec = 1;
+		tv.tv_usec = 200000;
+		tv.tv_sec = 0;
 		select(maxfd+1, &rset, NULL, NULL, &tv);
 		if(FD_ISSET(udpfd, &rset))
 		{
@@ -769,7 +770,7 @@ void sendOne(int udpfd, char* sendBuffer, const struct sockaddr *cliaddr_ptr)
 		}
 		else
 		{
-			printf("RETRASMITION: %s\n", sendBuffer);
+			//printf("RETRASMITION: %s\n", sendBuffer);
 		} 
 	}
 }
