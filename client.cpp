@@ -149,6 +149,7 @@ int main (int argc, char **argv)
 					state = ONLINE_MAIN_MENU;
 
 					sendOne(servfd, (struct sockaddr *)&servaddr, sendBuffer);
+					sprintf(temp, "ONLINE_MAIN_MENU %s H", account);
 					continue;
 				}
 

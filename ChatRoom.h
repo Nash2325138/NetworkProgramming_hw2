@@ -72,6 +72,15 @@ public:
 	{
 		members.erase(target);
 	}
+	void removeAccountAllMessage(User *target)
+	{
+		for(unsigned int i=0 ; i<messages.size() ; i++) {
+			if(messages[i]->author == target) {
+				messages.erase(messages.begin() + i);
+				i--;
+			}
+		}
+	}
 };
 
 

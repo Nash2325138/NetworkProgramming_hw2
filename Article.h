@@ -79,18 +79,22 @@ public:
 	{
 		// 
 		char temp[30000];
-		sprintf(temp, "~~~ Author: %s(%s) ~~~\n~~~ Article ID: %d ~~~\n~~~ Title: %s ~~~\n~~~ Content:\n%s\n", author->nickname, author->account, uniquedID, title, content);
+		strcat(sendBuffer, "----------------------------------------------------------------------------------------\n");
+		sprintf(temp, "   Author: %s(%s)\n   Article ID: %d\n   Title: %s\n", author->nickname, author->account, uniquedID, title);
 		strcat(sendBuffer, temp);
-
-		sprintf(temp, "---- Published time: %s---- IP: %s\n---- port: %d\n\n~~~ %lu people like this ~~~\n", asctime(&published_time), published_IP, published_port, likers.size());
-		strcat(sendBuffer, temp);
+		strcat(sendBuffer, "----------------------------------------------------------------------------------------\n");
 		
-		strcat(sendBuffer, "~~~ comments ~~~\n");
+		strcat(sendBuffer, content);
+
+		strcat(sendBuffer, "----------------------------------------------------------------------------------------\n");
+		sprintf(temp, "   Published time: %s   IP: %s\n   port: %d\n\n   %lu people like this\n", asctime(&published_time), published_IP, published_port, likers.size());
+		strcat(sendBuffer, temp);		
+		strcat(sendBuffer, "   Comments:\n");
 		for(unsigned int i=0 ; i<comments.size() ; i++) {
-			sprintf(temp, "%u. %s: %s\n", i+1, comments[i]->author->account, comments[i]->content);
+			sprintf(temp, "      %u. %s: %s\n", i+1, comments[i]->author->account, comments[i]->content);
 			strcat(sendBuffer, temp);
 		}
-		strcat(sendBuffer, "~~~~~~~~~~~~~~~~\n");
+		strcat(sendBuffer, "\n");
 	}
 	void addLiker(User *liker)
 	{

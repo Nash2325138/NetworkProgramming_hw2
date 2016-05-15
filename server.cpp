@@ -45,12 +45,26 @@ void sendHuge(int udpfd, char* sendBuffer, const struct sockaddr *cliaddr_ptr);
 
 void initialString()
 {
-	strcpy(mainMenuString, "  [SP]Show Profile\n  [MP]Modify Profile <[P]assword / [N]ickname / [B]irthday> <new content>\n  [D]elete account\n  [SA]Show Article\n  [E]nter article <article number>\n  [A]dd article <title>\n  [C]hat\n  [S]earch\n  [L]ogout\n  [H]elp commands\n");
-	strcpy(articleMenuString, "  [L]ike\n  [W]ho likes the article\n  [C]omment <\"put your comment here\">\n  [EA]Edit Article\n  [DA_sure]Delete Article\n  [EC]Edit Comment <number> <content>\n  [DC]Delete Command <number>\n  [H]elp\n  [B]ack\n");
-	strcpy(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room\n  [E]nter chat room <chat room number>\n  [H]elp\n  [B]ack\n");
-	strcpy(searchMenuString, "  [N]ickname search <nickname>\n  [A]ccount search <account>\n  [SR]Send friend Request <account> \n  [LR]List Request\n  [AR]Accept Request <account>\n  [DR]Delete Request <account>\n  [RF]Remove Friend <account>\n  [B]ack\n");
-	strcpy(chatRoomMenuString,"  [S]end message <message>\n  [U]pdate chat room\n  [W]ho is here\n  [A]dd account <account>\n  [L]eave from this chat room\n  [H]elp\n  [B]ack\n");
-
+	strcpy(mainMenuString, "----------------------------------------------------------------------------------------\n");
+	strcat(mainMenuString, "  [SP]Show Profile\n  [MP]Modify Profile <[P]assword / [N]ickname / [B]irthday> <new content>\n  [D]elete account\n  [SA]Show Article\n  [E]nter article <article number>\n  [A]dd article <title>\n  [C]hat\n  [S]earch\n  [L]ogout\n  [H]elp commands\n");
+	strcat(mainMenuString, "----------------------------------------------------------------------------------------\n");
+	
+	strcpy(articleMenuString, "----------------------------------------------------------------------------------------\n");
+	strcat(articleMenuString, "  [L]ike\n  [W]ho likes the article\n  [C]omment <\"put your comment here\">\n  [EA]Edit Article\n  [DA_sure]Delete Article\n  [EC]Edit Comment <number> <content>\n  [DC]Delete Command <number>\n  [H]elp\n  [B]ack\n");
+	strcat(articleMenuString, "----------------------------------------------------------------------------------------\n");
+	
+	strcpy(chatMenuString, "----------------------------------------------------------------------------------------\n");
+	strcat(chatMenuString, "  [LF]List Friends\n  [LC]List Chat room\n  [C]reate chat room\n  [E]nter chat room <chat room number>\n  [H]elp\n  [B]ack\n");
+	strcat(chatMenuString, "----------------------------------------------------------------------------------------\n");
+	
+	strcpy(searchMenuString, "----------------------------------------------------------------------------------------\n");
+	strcat(searchMenuString, "  [N]ickname search <nickname>\n  [A]ccount search <account>\n  [SR]Send friend Request <account> \n  [LR]List Request\n  [AR]Accept Request <account>\n  [DR]Delete Request <account>\n  [RF]Remove Friend <account>\n  [B]ack\n");
+	strcat(searchMenuString, "----------------------------------------------------------------------------------------\n");
+	
+	strcpy(chatRoomMenuString, "----------------------------------------------------------------------------------------\n");
+	strcat(chatRoomMenuString,"  [S]end message <message>\n  [U]pdate chat room\n  [W]ho is here\n  [A]dd account <account>\n  [L]eave from this chat room\n  [H]elp\n  [B]ack\n");
+	strcat(chatRoomMenuString, "----------------------------------------------------------------------------------------\n");
+	
 	strcpy(loginAccountString, "Enter your account( or enter \"new\" to register ): ");
 	strcpy(loginPasswordString, "Enter your password: ");
 
@@ -224,6 +238,7 @@ int main(int argc, char **argv)
 						}
 						printf("2");
 						for(unsigned int i=0 ; i < chatRoomList.size() ; i++) {
+							chatRoomList[i]->removeAccountAllMessage(delete_target);
 							if(chatRoomList[i]->hasMember(delete_target)) {
 								chatRoomList[i]->removeMember(delete_target);
 								if(chatRoomList[i]->members.empty()) {
